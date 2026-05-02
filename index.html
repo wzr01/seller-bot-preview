@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="ru" data-scheme="dark">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F1620">
+<meta name="theme-color" content="#0F1620" id="meta-theme-color">
 <title>SellerAssistantBot — Панель</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root {
+  /* === DARK THEME (default) === */
   --bg: #0F1620;
   --surface: #1A2332;
   --surface-2: #232E3C;
@@ -17,6 +18,57 @@
   --hint: #708499;
   --accent: #6AB3F3;
   --button: #5288C1;
+
+  /* Chrome / structure */
+  --app-bg-desktop: #07090E;
+  --divider: rgba(255,255,255,0.04);
+  --input-bg: rgba(0,0,0,0.2);
+  --input-border: rgba(255,255,255,0.06);
+  --progress-track: rgba(255,255,255,0.06);
+  --action-overlay: rgba(255,255,255,0.18);
+  --action-icon-bg: rgba(255,255,255,0.18);
+  --overlay: rgba(0,0,0,0.5);
+  --text-on-action: #FFFFFF;
+  --chip-active-text: #001428;
+  --button-text: #FFFFFF;
+  --bubble-trigger-bg: rgba(245,166,35,0.08);
+  --voice-btn-bg: rgba(82,136,193,0.12);
+  --voice-btn-bg-active: rgba(82,136,193,0.22);
+  --voice-btn-border: rgba(106,179,243,0.4);
+  --voice-recorded-bg: rgba(46,201,115,0.10);
+
+  /* Status pill backgrounds (translucent on dark) */
+  --pill-running-bg: rgba(61,155,255,0.18);
+  --pill-queued-bg: rgba(112,132,153,0.18);
+  --pill-success-bg: rgba(46,201,115,0.18);
+  --pill-failed-bg: rgba(236,57,66,0.18);
+  --pill-warn-bg: rgba(245,166,35,0.18);
+  --pill-running-text: var(--c-info);
+  --pill-queued-text: var(--hint);
+  --pill-success-text: var(--c-success);
+  --pill-failed-text: var(--c-danger);
+  --pill-warn-text: var(--c-warning);
+
+  /* KPI delta colors */
+  --kpi-up-bg: rgba(46,201,115,0.16);
+  --kpi-up-text: #4DD893;
+  --kpi-down-bg: rgba(236,57,66,0.16);
+  --kpi-down-text: #FF6B73;
+  --kpi-flat-bg: rgba(112,132,153,0.16);
+
+  /* Chat-mode chips */
+  --chat-mode-auto-bg: rgba(46,201,115,0.18);
+  --chat-mode-auto-text: #4DD893;
+  --chat-mode-silent-bg: rgba(112,132,153,0.20);
+  --chat-mode-silent-text: var(--text-2);
+  --chat-mode-paused-bg: rgba(245,166,35,0.18);
+  --chat-mode-paused-text: var(--c-warning);
+
+  /* Accent rgb (used for active chip backgrounds) */
+  --accent-soft-bg: rgba(106,179,243,0.08);
+  --button-shadow: 0 8px 24px rgba(82,136,193,0.4);
+  --danger-shadow: 0 8px 24px rgba(236,57,66,0.35);
+  --toast-success-text: #001A0E;
 
   --c-success: #2EC973;
   --c-warning: #F5A623;
@@ -37,9 +89,84 @@
 
   --shadow-card: 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.18);
   --shadow-pop: 0 12px 40px rgba(0,0,0,0.35);
+  --shadow-desktop: 0 0 60px rgba(0,0,0,0.6);
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* === LIGHT THEME ===
+   Активируется через [data-theme="light"] (выставляется JS из tg.colorScheme
+   или системной prefers-color-scheme). Вся палитра — функциональный аналог
+   тёмной: те же градиенты в action-картах, цветные status-чипы насыщеннее
+   за счёт меньшей прозрачности и более глубоких базовых цветов. */
+[data-theme="light"] {
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1F5;
+  --section-bg: #F0F3F7;
+  --text: #0F1620;
+  --text-2: #5A6878;
+  --hint: #8895A5;
+  --accent: #2F7FD6;
+  --button: #2F7FD6;
+
+  --app-bg-desktop: #E1E6EC;
+  --divider: rgba(15,22,32,0.06);
+  --input-bg: #F5F7FA;
+  --input-border: #E1E5EA;
+  --progress-track: rgba(15,22,32,0.06);
+  --action-overlay: rgba(255,255,255,0.22);
+  --action-icon-bg: rgba(255,255,255,0.25);
+  --overlay: rgba(15,22,32,0.45);
+  --text-on-action: #FFFFFF;
+  --chip-active-text: #FFFFFF;
+  --button-text: #FFFFFF;
+  --bubble-trigger-bg: rgba(245,166,35,0.12);
+  --voice-btn-bg: rgba(47,127,214,0.08);
+  --voice-btn-bg-active: rgba(47,127,214,0.16);
+  --voice-btn-border: rgba(47,127,214,0.35);
+  --voice-recorded-bg: rgba(34,168,100,0.10);
+
+  --pill-running-bg: rgba(61,155,255,0.14);
+  --pill-queued-bg: rgba(90,104,120,0.12);
+  --pill-success-bg: rgba(34,168,100,0.14);
+  --pill-failed-bg: rgba(214,51,65,0.12);
+  --pill-warn-bg: rgba(214,140,20,0.14);
+  --pill-running-text: #1E78D6;
+  --pill-queued-text: #5A6878;
+  --pill-success-text: #1A8C50;
+  --pill-failed-text: #C42030;
+  --pill-warn-text: #C47A12;
+
+  --kpi-up-bg: rgba(34,168,100,0.14);
+  --kpi-up-text: #1A8C50;
+  --kpi-down-bg: rgba(214,51,65,0.12);
+  --kpi-down-text: #C42030;
+  --kpi-flat-bg: rgba(136,149,165,0.14);
+
+  --chat-mode-auto-bg: rgba(34,168,100,0.14);
+  --chat-mode-auto-text: #1A8C50;
+  --chat-mode-silent-bg: rgba(136,149,165,0.18);
+  --chat-mode-silent-text: #5A6878;
+  --chat-mode-paused-bg: rgba(214,140,20,0.14);
+  --chat-mode-paused-text: #B5710F;
+
+  --accent-soft-bg: rgba(47,127,214,0.10);
+  --button-shadow: 0 6px 18px rgba(47,127,214,0.28);
+  --danger-shadow: 0 6px 18px rgba(214,51,65,0.25);
+  --toast-success-text: #FFFFFF;
+
+  /* Mute pure-white sheen on light bg, чтобы action-карточки не пересвечивались */
+  --c-info: #1E78D6;
+  --c-success: #22A864;
+  --c-warning: #D68C14;
+  --c-danger: #D63341;
+
+  /* Карточки на белом — тонкая тень с тёплым подтоном вместо чёрной */
+  --shadow-card: 0 1px 2px rgba(15,22,32,0.04), 0 4px 14px rgba(15,22,32,0.06);
+  --shadow-pop: 0 12px 36px rgba(15,22,32,0.14);
+  --shadow-desktop: 0 0 40px rgba(15,22,32,0.10);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -65,9 +192,9 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   background: var(--bg);
 }
 @media (min-width: 700px) {
-  body { background: #07090E; padding: 0; }
+  body { background: var(--app-bg-desktop); padding: 0; }
   .app {
-    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow-desktop);
     min-height: 100dvh;
   }
 }
@@ -106,7 +233,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--grad-purple);
   display: grid; place-items: center;
-  font-weight: 700; font-size: 16px; color: #fff;
+  font-weight: 700; font-size: 16px; color: var(--text-on-action);
   box-shadow: var(--shadow-card);
   flex-shrink: 0;
 }
@@ -150,9 +277,9 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   margin-top: 6px;
   align-self: flex-start;
 }
-.kpi-delta.up { background: rgba(46, 201, 115, 0.16); color: #4DD893; }
-.kpi-delta.down { background: rgba(236, 57, 66, 0.16); color: #FF6B73; }
-.kpi-delta.flat { background: rgba(112, 132, 153, 0.16); color: var(--hint); }
+.kpi-delta.up { background: var(--kpi-up-bg); color: var(--kpi-up-text); }
+.kpi-delta.down { background: var(--kpi-down-bg); color: var(--kpi-down-text); }
+.kpi-delta.flat { background: var(--kpi-flat-bg); color: var(--hint); }
 
 /* Action grid 2-up gradient cards */
 .actions-grid {
@@ -165,7 +292,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   display: flex; flex-direction: column;
   padding: 14px 14px 16px;
   border-radius: var(--r-lg);
-  color: #fff; text-align: left;
+  color: var(--text-on-action); text-align: left;
   min-height: 110px;
   overflow: hidden;
   box-shadow: var(--shadow-card);
@@ -174,14 +301,14 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .action-card::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.18), transparent 60%);
+  background: radial-gradient(circle at 100% 0%, var(--action-overlay), transparent 60%);
   pointer-events: none;
 }
 .action-card:active { transform: scale(0.98); }
 .action-icon {
   width: 38px; height: 38px;
   border-radius: 10px;
-  background: rgba(255,255,255,0.18);
+  background: var(--action-icon-bg);
   display: grid; place-items: center;
   font-size: 20px;
   margin-bottom: auto;
@@ -243,16 +370,16 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   padding: 3px 8px; border-radius: 999px;
   letter-spacing: 0.02em;
 }
-.pill-running { background: rgba(61, 155, 255, 0.18); color: var(--c-info); }
-.pill-queued { background: rgba(112, 132, 153, 0.18); color: var(--hint); }
-.pill-success { background: rgba(46, 201, 115, 0.18); color: var(--c-success); }
-.pill-failed { background: rgba(236, 57, 66, 0.18); color: var(--c-danger); }
-.pill-warn { background: rgba(245, 166, 35, 0.18); color: var(--c-warning); }
+.pill-running { background: var(--pill-running-bg); color: var(--pill-running-text); }
+.pill-queued { background: var(--pill-queued-bg); color: var(--pill-queued-text); }
+.pill-success { background: var(--pill-success-bg); color: var(--pill-success-text); }
+.pill-failed { background: var(--pill-failed-bg); color: var(--pill-failed-text); }
+.pill-warn { background: var(--pill-warn-bg); color: var(--pill-warn-text); }
 
 .progress {
   margin-top: 10px;
   height: 4px;
-  background: rgba(255,255,255,0.06);
+  background: var(--progress-track);
   border-radius: 2px; overflow: hidden;
 }
 .progress-bar {
@@ -279,7 +406,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .chat-avatar {
   width: 42px; height: 42px; border-radius: 50%;
   display: grid; place-items: center;
-  font-weight: 700; font-size: 15px; color: #fff;
+  font-weight: 700; font-size: 15px; color: var(--text-on-action);
   flex-shrink: 0;
 }
 .chat-info { flex: 1; min-width: 0; }
@@ -292,9 +419,9 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   font-size: 11px; font-weight: 600;
   padding: 3px 8px; border-radius: 999px;
 }
-.chat-mode.auto { background: rgba(46, 201, 115, 0.18); color: #4DD893; }
-.chat-mode.silent { background: rgba(112, 132, 153, 0.20); color: var(--text-2); }
-.chat-mode.paused { background: rgba(245, 166, 35, 0.18); color: var(--c-warning); }
+.chat-mode.auto { background: var(--chat-mode-auto-bg); color: var(--chat-mode-auto-text); }
+.chat-mode.silent { background: var(--chat-mode-silent-bg); color: var(--chat-mode-silent-text); }
+.chat-mode.paused { background: var(--chat-mode-paused-bg); color: var(--chat-mode-paused-text); }
 
 /* Filter chips */
 .chips-row {
@@ -314,7 +441,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 }
 .chip.active {
   background: var(--accent);
-  color: #001428;
+  color: var(--chip-active-text);
   font-weight: 600;
 }
 
@@ -328,16 +455,16 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   height: 50px;
   border-radius: 12px;
   background: var(--button);
-  color: #fff;
+  color: var(--button-text);
   font-size: 16px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  box-shadow: 0 8px 24px rgba(82, 136, 193, 0.4);
+  box-shadow: var(--button-shadow);
   transition: transform 120ms ease, opacity 120ms ease;
   z-index: 50;
 }
 .main-button:active { transform: translateX(-50%) scale(0.98); }
 .main-button.secondary { background: var(--surface-2); color: var(--text); box-shadow: none; }
-.main-button.danger { background: var(--c-danger); box-shadow: 0 8px 24px rgba(236, 57, 66, 0.35); }
+.main-button.danger { background: var(--c-danger); color: #FFFFFF; box-shadow: var(--danger-shadow); }
 .main-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Escalation-detail components */
@@ -386,7 +513,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   box-shadow: var(--shadow-card);
 }
 .bubble.trigger {
-  background: rgba(245, 166, 35, 0.08);
+  background: var(--bubble-trigger-bg);
   border-left: 3px solid var(--c-warning);
 }
 .bubble .who {
@@ -409,13 +536,13 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%;
   padding: 16px;
-  background: rgba(82, 136, 193, 0.12);
-  border: 1px dashed rgba(106, 179, 243, 0.4);
+  background: var(--voice-btn-bg);
+  border: 1px dashed var(--voice-btn-border);
   border-radius: var(--r-md);
   color: var(--accent);
   font-size: 14px; font-weight: 500;
 }
-.composer .voice-btn:active { background: rgba(82, 136, 193, 0.22); }
+.composer .voice-btn:active { background: var(--voice-btn-bg-active); }
 .composer .switch-row {
   display: flex; gap: 6px;
   margin-top: 10px;
@@ -428,8 +555,8 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .composer textarea {
   width: 100%;
   min-height: 80px;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: var(--r-md);
   color: var(--text);
   font-family: inherit;
@@ -443,14 +570,14 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .voice-recorded {
   display: flex; align-items: center; gap: 12px;
   padding: 14px;
-  background: rgba(46, 201, 115, 0.10);
+  background: var(--voice-recorded-bg);
   border-radius: var(--r-md);
 }
 .voice-recorded .icon {
   width: 36px; height: 36px; border-radius: 50%;
   background: var(--c-success);
   display: grid; place-items: center;
-  font-size: 16px; color: #fff;
+  font-size: 16px; color: var(--text-on-action);
 }
 .voice-recorded .info { flex: 1; }
 .voice-recorded .stt {
@@ -501,7 +628,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   border-radius: 4px; flex-shrink: 0;
   margin-top: 1px;
 }
-.checklist .item + .item { border-top: 1px solid rgba(255,255,255,0.04); }
+.checklist .item + .item { border-top: 1px solid var(--divider); }
 
 /* Style / agreement timelines */
 .bullets {
@@ -528,7 +655,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   display: flex; gap: 12px; padding: 10px;
   font-size: 14px; line-height: 1.4;
 }
-.timeline .row + .row { border-top: 1px solid rgba(255,255,255,0.04); }
+.timeline .row + .row { border-top: 1px solid var(--divider); }
 .timeline .date {
   flex-shrink: 0; width: 64px;
   font-size: 12px; color: var(--hint);
@@ -549,7 +676,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   padding: 10px;
   font-size: 14px; color: var(--text);
 }
-.contact-row + .contact-row { border-top: 1px solid rgba(255,255,255,0.04); }
+.contact-row + .contact-row { border-top: 1px solid var(--divider); }
 .contact-row .icon {
   width: 32px; height: 32px; border-radius: 8px;
   background: var(--surface-2);
@@ -562,7 +689,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 /* Bottom sheet (mode picker) */
 .sheet-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: var(--overlay);
   z-index: 100;
   opacity: 0; pointer-events: none;
   transition: opacity 200ms ease;
@@ -595,7 +722,7 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   cursor: pointer;
   border: 2px solid transparent;
 }
-.mode-option.active { border-color: var(--accent); background: rgba(106, 179, 243, 0.08); }
+.mode-option.active { border-color: var(--accent); background: var(--accent-soft-bg); }
 .mode-option .mark { font-size: 18px; flex-shrink: 0; }
 .mode-option .body { flex: 1; }
 .mode-option .name { font-size: 15px; font-weight: 600; color: var(--text); }
@@ -624,8 +751,8 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   pointer-events: none;
 }
 .toast.show { transform: translate(-50%, 0); }
-.toast.success { background: var(--c-success); color: #001A0E; }
-.toast.error { background: var(--c-danger); }
+.toast.success { background: var(--c-success); color: var(--toast-success-text); }
+.toast.error { background: var(--c-danger); color: #FFFFFF; }
 
 /* Icons (inline SVG sizes) */
 .i { width: 18px; height: 18px; flex-shrink: 0; }
@@ -1582,33 +1709,86 @@ function render() {
 }
 
 /* ============================================================
-   INIT — telegram theme integration
+   INIT — auto theme (light / dark)
+   Источник истины:
+     1. Telegram WebApp colorScheme  (tg.colorScheme === 'light' | 'dark')
+     2. fallback на window.matchMedia('(prefers-color-scheme: light)')
+   В Telegram дополнительно накладываем tg.themeParams.* поверх — пусть
+   нативная палитра пользователя выигрывает у наших дефолтов.
+   Подписаны на 'themeChanged' (TG) и 'change' (matchMedia) — переключение
+   темы в рантайме отрабатывает без перезагрузки.
 ============================================================ */
-function initTelegramTheme() {
-  const tg = window.Telegram?.WebApp;
-  if (!tg) return;
-  try {
-    tg.ready();
-    tg.expand();
-    if (tg.themeParams && tg.themeParams.bg_color) {
-      // Apply TG theme override (let real TG dark/light theme drive colors)
-      const tp = tg.themeParams;
-      const root = document.documentElement;
-      if (tp.bg_color) root.style.setProperty('--bg', tp.bg_color);
-      if (tp.secondary_bg_color) root.style.setProperty('--surface', tp.secondary_bg_color);
-      if (tp.text_color) root.style.setProperty('--text', tp.text_color);
-      if (tp.hint_color) root.style.setProperty('--hint', tp.hint_color);
-      if (tp.button_color) root.style.setProperty('--button', tp.button_color);
-      if (tp.link_color) root.style.setProperty('--accent', tp.link_color);
-    }
-    tg.onEvent('backButtonClicked', () => back());
-    if (tg.BackButton) tg.BackButton.hide();
-  } catch (e) {
-    console.warn('TG WebApp init failed (probably running in browser)', e);
+const THEME_META_COLORS = { dark: '#0F1620', light: '#F5F7FA' };
+
+function applyTheme(scheme) {
+  const t = scheme === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  const meta = document.getElementById('meta-theme-color');
+  if (meta) meta.setAttribute('content', THEME_META_COLORS[t]);
+}
+
+function applyTelegramThemeParams(tp) {
+  if (!tp) return;
+  const root = document.documentElement;
+  // Точечно мапим TG palette на наши переменные. Это перезаписывает
+  // дефолты темы (light/dark уже выставлен на data-theme), позволяя
+  // нативной TG-теме «протекать» в Mini App.
+  if (tp.bg_color)            root.style.setProperty('--bg', tp.bg_color);
+  if (tp.secondary_bg_color)  root.style.setProperty('--surface', tp.secondary_bg_color);
+  if (tp.section_bg_color)    root.style.setProperty('--section-bg', tp.section_bg_color);
+  if (tp.text_color)          root.style.setProperty('--text', tp.text_color);
+  if (tp.subtitle_text_color) root.style.setProperty('--text-2', tp.subtitle_text_color);
+  if (tp.hint_color)          root.style.setProperty('--hint', tp.hint_color);
+  if (tp.link_color)          root.style.setProperty('--accent', tp.link_color);
+  if (tp.button_color)        root.style.setProperty('--button', tp.button_color);
+  if (tp.button_text_color)   root.style.setProperty('--button-text', tp.button_text_color);
+  if (tp.destructive_text_color) root.style.setProperty('--c-danger', tp.destructive_text_color);
+  if (tp.bg_color) {
+    const meta = document.getElementById('meta-theme-color');
+    if (meta) meta.setAttribute('content', tp.bg_color);
   }
 }
 
-initTelegramTheme();
+function initTheme() {
+  const tg = window.Telegram?.WebApp;
+  const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+
+  // Initial apply
+  if (tg && tg.colorScheme) {
+    applyTheme(tg.colorScheme);
+  } else if (mql && mql.matches) {
+    applyTheme('light');
+  } else {
+    applyTheme('dark');
+  }
+
+  // Telegram WebApp init
+  if (tg) {
+    try {
+      tg.ready();
+      tg.expand();
+      applyTelegramThemeParams(tg.themeParams);
+      // Runtime: пользователь меняет тему в TG → подхватываем
+      tg.onEvent('themeChanged', () => {
+        applyTheme(tg.colorScheme);
+        applyTelegramThemeParams(tg.themeParams);
+      });
+      tg.onEvent('backButtonClicked', () => back());
+      if (tg.BackButton) tg.BackButton.hide();
+    } catch (e) {
+      console.warn('TG WebApp init failed (probably running in browser)', e);
+    }
+  }
+
+  // Browser fallback: системное переключение light/dark
+  if (mql && !tg) {
+    const onChange = (e) => applyTheme(e.matches ? 'light' : 'dark');
+    if (mql.addEventListener) mql.addEventListener('change', onChange);
+    else if (mql.addListener) mql.addListener(onChange); // Safari < 14
+  }
+}
+
+initTheme();
 render();
 </script>
 </body>
