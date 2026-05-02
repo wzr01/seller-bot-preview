@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="ru" data-scheme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1620">
+<title>SellerAssistantBot — Панель</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: #0F1620;
+  --surface: #1A2332;
+  --surface-2: #232E3C;
+  --section-bg: #1C2733;
+  --text: #FFFFFF;
+  --text-2: #A8B7C7;
+  --hint: #708499;
+  --accent: #6AB3F3;
+  --button: #5288C1;
+
+  --c-success: #2EC973;
+  --c-warning: #F5A623;
+  --c-danger: #EC3942;
+  --c-info: #3D9BFF;
+
+  --grad-orange: linear-gradient(135deg, #FF8A00 0%, #FF3D7F 100%);
+  --grad-purple: linear-gradient(135deg, #7B5CFF 0%, #3D9BFF 100%);
+  --grad-teal:   linear-gradient(135deg, #00C9A7 0%, #0FB1FF 100%);
+  --grad-pink:   linear-gradient(135deg, #FF5E9C 0%, #7B5CFF 100%);
+  --grad-blue:   linear-gradient(135deg, #3D9BFF 0%, #7B5CFF 100%);
+  --grad-amber:  linear-gradient(135deg, #F5A623 0%, #FF6B6B 100%);
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.18);
+  --shadow-pop: 0 12px 40px rgba(0,0,0,0.35);
+
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain;
+}
+button { font: inherit; color: inherit; border: 0; background: transparent; cursor: pointer; }
+
+/* Layout — mobile-first, centered 420px on desktop */
+.app {
+  max-width: 420px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 0 16px calc(96px + var(--safe-bottom));
+  position: relative;
+  background: var(--bg);
+}
+@media (min-width: 700px) {
+  body { background: #07090E; padding: 0; }
+  .app {
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    min-height: 100dvh;
+  }
+}
+
+/* Top back-bar (fake TG BackButton on non-main screens) */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0 4px;
+  min-height: 44px;
+}
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 16px; font-weight: 500; color: var(--accent);
+  padding: 6px 8px 6px 0;
+}
+.back-btn:active { opacity: 0.6; }
+.topbar-title {
+  font-size: 17px; font-weight: 600; color: var(--text);
+  position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+}
+.menu-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface-2);
+  display: grid; place-items: center;
+  color: var(--text-2); font-size: 18px; line-height: 1;
+}
+
+/* Header (greeting + avatar) — main screen */
+.header { padding: 18px 4px 8px; position: relative; }
+.header-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.greeting { font-size: 14px; color: var(--hint); }
+.username { margin: 2px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--grad-purple);
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 16px; color: #fff;
+  box-shadow: var(--shadow-card);
+  flex-shrink: 0;
+}
+
+/* Section title */
+.section { margin-top: 22px; }
+.section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--hint);
+  margin: 0 4px 10px;
+}
+.section-title .right { color: var(--accent); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 13px; }
+
+/* KPI row 3-up */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+.kpi-card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 12px 12px 12px;
+  min-height: 88px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  box-shadow: var(--shadow-card);
+}
+.kpi-value {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05;
+  color: var(--text);
+}
+.kpi-label {
+  font-size: 11px; color: var(--hint); margin-top: 4px; line-height: 1.25;
+}
+.kpi-delta {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 6px; border-radius: 6px;
+  margin-top: 6px;
+  align-self: flex-start;
+}
+.kpi-delta.up { background: rgba(46, 201, 115, 0.16); color: #4DD893; }
+.kpi-delta.down { background: rgba(236, 57, 66, 0.16); color: #FF6B73; }
+.kpi-delta.flat { background: rgba(112, 132, 153, 0.16); color: var(--hint); }
+
+/* Action grid 2-up gradient cards */
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.action-card {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 14px 14px 16px;
+  border-radius: var(--r-lg);
+  color: #fff; text-align: left;
+  min-height: 110px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 120ms ease;
+}
+.action-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.18), transparent 60%);
+  pointer-events: none;
+}
+.action-card:active { transform: scale(0.98); }
+.action-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.18);
+  display: grid; place-items: center;
+  font-size: 20px;
+  margin-bottom: auto;
+}
+.action-title { font-size: 15px; font-weight: 700; margin-top: 12px; line-height: 1.2; }
+.action-subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.action-arrow {
+  position: absolute; top: 16px; right: 14px;
+  opacity: 0.7;
+}
+
+/* Task / escalation list cards (in-progress) */
+.task-card {
+  display: block; width: 100%;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  margin-bottom: 8px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  transition: transform 120ms ease;
+}
+.task-card:active { transform: scale(0.99); }
+.task-card .rail {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.task-card[data-priority="1"] .rail { background: var(--c-danger); }
+.task-card[data-priority="2"] .rail { background: var(--c-warning); }
+.task-card[data-priority="3"] .rail { background: var(--c-success); }
+.task-card[data-status="closed"] .rail { background: var(--hint); }
+
+.task-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.task-title {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-time {
+  font-size: 12px; color: var(--hint); flex-shrink: 0;
+}
+.task-subtitle {
+  font-size: 13px; color: var(--text-2);
+  margin-top: 4px; line-height: 1.35;
+}
+.task-nudge {
+  font-size: 12px; color: var(--hint);
+  margin-top: 6px; font-style: italic;
+}
+.task-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px;
+}
+.pill {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.pill-running { background: rgba(61, 155, 255, 0.18); color: var(--c-info); }
+.pill-queued { background: rgba(112, 132, 153, 0.18); color: var(--hint); }
+.pill-success { background: rgba(46, 201, 115, 0.18); color: var(--c-success); }
+.pill-failed { background: rgba(236, 57, 66, 0.18); color: var(--c-danger); }
+.pill-warn { background: rgba(245, 166, 35, 0.18); color: var(--c-warning); }
+
+.progress {
+  margin-top: 10px;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-info), #7B5CFF);
+}
+
+/* Chevron */
+.chev {
+  color: var(--hint); flex-shrink: 0;
+}
+
+/* Chat list cards */
+.chat-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-card);
+  transition: transform 120ms ease;
+}
+.chat-card:active { transform: scale(0.99); }
+.chat-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 15px; color: #fff;
+  flex-shrink: 0;
+}
+.chat-info { flex: 1; min-width: 0; }
+.chat-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.chat-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.chat-subtitle { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+.chat-meta { font-size: 12px; color: var(--hint); margin-top: 4px; }
+.chat-mode {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 999px;
+}
+.chat-mode.auto { background: rgba(46, 201, 115, 0.18); color: #4DD893; }
+.chat-mode.silent { background: rgba(112, 132, 153, 0.20); color: var(--text-2); }
+.chat-mode.paused { background: rgba(245, 166, 35, 0.18); color: var(--c-warning); }
+
+/* Filter chips */
+.chips-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 4px 0 12px;
+  scrollbar-width: none;
+}
+.chips-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--accent);
+  color: #001428;
+  font-weight: 600;
+}
+
+/* MainButton (sticky bottom) */
+.main-button {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(12px + var(--safe-bottom));
+  width: calc(100% - 32px);
+  max-width: 388px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--button);
+  color: #fff;
+  font-size: 16px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 8px 24px rgba(82, 136, 193, 0.4);
+  transition: transform 120ms ease, opacity 120ms ease;
+  z-index: 50;
+}
+.main-button:active { transform: translateX(-50%) scale(0.98); }
+.main-button.secondary { background: var(--surface-2); color: var(--text); box-shadow: none; }
+.main-button.danger { background: var(--c-danger); box-shadow: 0 8px 24px rgba(236, 57, 66, 0.35); }
+.main-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Escalation-detail components */
+.contragent-hero {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  margin-top: 8px;
+  box-shadow: var(--shadow-card);
+}
+.contragent-hero .avatar { width: 56px; height: 56px; font-size: 20px; }
+.contragent-hero .info { flex: 1; min-width: 0; }
+.contragent-hero .name { font-size: 16px; font-weight: 700; }
+.contragent-hero .meta { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+.contragent-hero .age { font-size: 12px; color: var(--hint); margin-top: 2px; }
+
+.summary-card {
+  margin-top: 12px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 14px 14px 14px 18px;
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+.summary-card .rail {
+  position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+.summary-card[data-priority="1"] .rail { background: var(--c-danger); }
+.summary-card[data-priority="2"] .rail { background: var(--c-warning); }
+.summary-card .label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--c-danger);
+  margin-bottom: 6px;
+}
+.summary-card[data-priority="2"] .label { color: var(--c-warning); }
+.summary-card .body { font-size: 14px; color: var(--text); line-height: 1.45; }
+
+/* Chat context bubbles */
+.bubble {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  box-shadow: var(--shadow-card);
+}
+.bubble.trigger {
+  background: rgba(245, 166, 35, 0.08);
+  border-left: 3px solid var(--c-warning);
+}
+.bubble .who {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+}
+.bubble .who .ts { color: var(--hint); font-weight: 400; margin-left: 6px; }
+.bubble .text {
+  font-size: 14px; color: var(--text); margin-top: 4px; line-height: 1.4;
+}
+
+/* Composer */
+.composer {
+  margin-top: 16px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-card);
+}
+.composer .voice-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  padding: 16px;
+  background: rgba(82, 136, 193, 0.12);
+  border: 1px dashed rgba(106, 179, 243, 0.4);
+  border-radius: var(--r-md);
+  color: var(--accent);
+  font-size: 14px; font-weight: 500;
+}
+.composer .voice-btn:active { background: rgba(82, 136, 193, 0.22); }
+.composer .switch-row {
+  display: flex; gap: 6px;
+  margin-top: 10px;
+  font-size: 12px; color: var(--hint);
+  justify-content: center;
+}
+.composer .switch-row a {
+  color: var(--accent); text-decoration: none; cursor: pointer;
+}
+.composer textarea {
+  width: 100%;
+  min-height: 80px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+}
+.composer textarea:focus { border-color: var(--accent); }
+
+.voice-recorded {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px;
+  background: rgba(46, 201, 115, 0.10);
+  border-radius: var(--r-md);
+}
+.voice-recorded .icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--c-success);
+  display: grid; place-items: center;
+  font-size: 16px; color: #fff;
+}
+.voice-recorded .info { flex: 1; }
+.voice-recorded .stt {
+  font-size: 13px; color: var(--text); font-style: italic;
+}
+.voice-recorded .duration {
+  font-size: 11px; color: var(--hint); margin-top: 2px;
+}
+.voice-actions { display: flex; gap: 6px; }
+.voice-actions button {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-2);
+  display: grid; place-items: center;
+  font-size: 12px; color: var(--text-2);
+}
+
+/* Contragent-detail metrics */
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  margin-top: 8px;
+}
+@media (min-width: 380px) {
+  .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.metric-card {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 12px;
+  box-shadow: var(--shadow-card);
+}
+.metric-value { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+.metric-label { font-size: 11px; color: var(--hint); margin-top: 2px; line-height: 1.25; }
+
+/* Open questions list */
+.checklist {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  box-shadow: var(--shadow-card);
+}
+.checklist .item {
+  display: flex; gap: 10px; padding: 10px;
+  font-size: 14px; color: var(--text-2); line-height: 1.4;
+}
+.checklist .item .box {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--hint);
+  border-radius: 4px; flex-shrink: 0;
+  margin-top: 1px;
+}
+.checklist .item + .item { border-top: 1px solid rgba(255,255,255,0.04); }
+
+/* Style / agreement timelines */
+.bullets {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-card);
+}
+.bullets .bullet {
+  display: flex; gap: 10px;
+  font-size: 14px; color: var(--text-2);
+  padding: 6px 0;
+  line-height: 1.4;
+}
+.bullets .bullet::before { content: '•'; color: var(--accent); flex-shrink: 0; }
+
+.timeline {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  box-shadow: var(--shadow-card);
+}
+.timeline .row {
+  display: flex; gap: 12px; padding: 10px;
+  font-size: 14px; line-height: 1.4;
+}
+.timeline .row + .row { border-top: 1px solid rgba(255,255,255,0.04); }
+.timeline .date {
+  flex-shrink: 0; width: 64px;
+  font-size: 12px; color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+.timeline .text { color: var(--text-2); }
+
+/* Contacts */
+.contacts {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  box-shadow: var(--shadow-card);
+}
+.contact-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px;
+  font-size: 14px; color: var(--text);
+}
+.contact-row + .contact-row { border-top: 1px solid rgba(255,255,255,0.04); }
+.contact-row .icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface-2);
+  display: grid; place-items: center;
+  font-size: 14px;
+}
+.contact-row .text { flex: 1; }
+.contact-row .arrow { color: var(--hint); }
+
+/* Bottom sheet (mode picker) */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed;
+  left: 50%; bottom: 0; transform: translate(-50%, 100%);
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 12px 16px calc(20px + var(--safe-bottom));
+  box-shadow: var(--shadow-pop);
+  z-index: 101;
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+}
+.sheet.open { transform: translate(-50%, 0); }
+.sheet .grabber {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--hint); opacity: 0.4;
+  margin: 4px auto 12px;
+}
+.sheet h3 { margin: 4px 0 16px; font-size: 17px; font-weight: 600; }
+.mode-option {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  margin-bottom: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.mode-option.active { border-color: var(--accent); background: rgba(106, 179, 243, 0.08); }
+.mode-option .mark { font-size: 18px; flex-shrink: 0; }
+.mode-option .body { flex: 1; }
+.mode-option .name { font-size: 15px; font-weight: 600; color: var(--text); }
+.mode-option .desc { font-size: 12px; color: var(--text-2); margin-top: 4px; line-height: 1.4; }
+.mode-option .check { color: var(--accent); font-size: 18px; flex-shrink: 0; opacity: 0; }
+.mode-option.active .check { opacity: 1; }
+
+/* Empty state for routing */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 200ms ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%; transform: translate(-50%, 80px);
+  bottom: calc(80px + var(--safe-bottom));
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  box-shadow: var(--shadow-pop);
+  z-index: 200;
+  transition: transform 240ms ease;
+  pointer-events: none;
+}
+.toast.show { transform: translate(-50%, 0); }
+.toast.success { background: var(--c-success); color: #001A0E; }
+.toast.error { background: var(--c-danger); }
+
+/* Icons (inline SVG sizes) */
+.i { width: 18px; height: 18px; flex-shrink: 0; }
+.i-sm { width: 14px; height: 14px; }
+.i-lg { width: 22px; height: 22px; }
+
+/* Misc helpers */
+.spacer { height: 12px; }
+.muted { color: var(--hint); }
+.center { text-align: center; }
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--hint);
+}
+.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+.empty .title { font-size: 16px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+.empty .sub { font-size: 13px; color: var(--hint); }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   MOCK DATA
+============================================================ */
+const MOCK_DATA = {
+  user: { first_name: 'Сергей', initial: 'С' },
+  kpi_today: {
+    open_escalations: { value: 3, label: 'Открытых эскалаций', delta: '+1', dir: 'down' },
+    closed_today: { value: 8, label: 'Закрыто за день', delta: '+12%', dir: 'up' },
+    avg_time: { value: '12 мин', label: 'Среднее время ответа', delta: '-1.4пп', dir: 'up' }
+  },
+  actions: [
+    { id: 'escalations', icon: '⚠', title: 'Эскалации', sub: '3 открытых', grad: 'orange', screen: 'escalations-list' },
+    { id: 'chats', icon: '💬', title: 'Чаты', sub: '12 активных', grad: 'purple', screen: 'chats-list' },
+    { id: 'contragents', icon: '👥', title: 'Контрагенты', sub: '7 ФФ + поставщики', grad: 'teal', screen: 'contragents-list' },
+    { id: 'metrics', icon: '📊', title: 'Метрики недели', sub: 'Сводка пилота', grad: 'pink', screen: 'metrics' }
+  ],
+  escalations: [
+    {
+      id: 'esc-2026-05-02-0003',
+      priority: 1,
+      icon: '⚠',
+      chat_title: 'Test_FF_Direct',
+      chat_id: 'Test_FF_Direct',
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice',
+      age: '2ч 14м',
+      title: 'ФФ Alice — недовоз по 4419',
+      summary: 'ФФ Alice сообщает о недовозе по поставке 4421 — 8 шт SKU 89234561. Контрагент ждёт решения по возврату или компенсации.',
+      nudge: 'Ждёт решения по возврату/компенсации',
+      progress: 80,
+      status_label: 'Выполняется',
+      status_class: 'running',
+      ts_opened: '14:23'
+    },
+    {
+      id: 'esc-2026-05-02-0004',
+      priority: 2,
+      icon: '🟡',
+      chat_title: 'Test_FF_Direct',
+      chat_id: 'Test_FF_Direct',
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice',
+      age: '47 мин',
+      title: 'ФФ Alice — скидка 8% на 60 шт',
+      summary: 'ФФ Alice просит скидку 8% на 60 шт SKU 89234581. Базовый прайс согласован 15.08.25, доп. скидка не утверждена.',
+      nudge: 'Согласуй или предложи встречные условия',
+      progress: 45,
+      status_label: 'Ждёт ответа',
+      status_class: 'queued',
+      ts_opened: '15:50'
+    },
+    {
+      id: 'esc-2026-05-02-0005',
+      priority: 3,
+      icon: '🟢',
+      chat_title: 'Test_FF_Group',
+      chat_id: 'Test_FF_Group',
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice + ФФ Bob',
+      age: '12 мин',
+      title: 'Test_FF_Group — расхождение по 4421',
+      summary: 'Alice и Bob дают разные цифры по поставке 4421 — 180 vs 200 коробов. Нужно подтвердить факт приёмки.',
+      nudge: 'Уточни кто прав по факту',
+      progress: 20,
+      status_label: 'В очереди',
+      status_class: 'queued',
+      ts_opened: '16:25'
+    }
+  ],
+  recent: [
+    { id: 'r1', title: 'ФФ Alice — расценки на 89234561', status: 'success', status_label: 'Готово', time: '12:04' },
+    { id: 'r2', title: 'Test_FF_Direct — окно приёмки', status: 'success', status_label: 'Готово', time: '11:42' },
+    { id: 'r3', title: 'ABC-Логистика — приветствие', status: 'failed', status_label: 'Ошибка', time: '10:18' }
+  ],
+  escalation_detail: {
+    'esc-2026-05-02-0003': {
+      id: 'esc-2026-05-02-0003',
+      status: 'open',
+      priority: 1,
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice',
+      chat_title: 'Test_FF_Direct',
+      age_state: 'открыта 2ч 14м назад',
+      summary: 'ФФ Alice сообщает о недовозе по поставке 4421 — 8 шт SKU 89234561.\n\nКонтрагент ждёт решения по возврату или компенсации. Прецедент: 02.26 расхождение 4310, недовоз 3 шт SKU 89234561, возврат без претензий.',
+      context_messages: [
+        { who: 'ФФ Alice', dir: 'in', ts: '14:18', text: 'привет, по 4421 беда' },
+        { who: 'Сергей (бот)', dir: 'out', ts: '14:19', text: 'привет, что случилось' },
+        { who: 'ФФ Alice', dir: 'in', ts: '14:22', text: 'счас фото пришлю, ща' },
+        { who: 'ФФ Alice', dir: 'in', ts: '14:23', text: 'нашли расхождение по 4421 — недовоз 8 шт SKU 89234561, нужно решать что делать', trigger: true },
+        { who: 'Сергей (бот)', dir: 'out', ts: '14:23', text: 'понял, по 4421 разбираемся, вернусь с решением' }
+      ]
+    },
+    'esc-2026-05-02-0004': {
+      id: 'esc-2026-05-02-0004',
+      status: 'open',
+      priority: 2,
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice',
+      chat_title: 'Test_FF_Direct',
+      age_state: 'открыта 47 мин назад',
+      summary: 'ФФ Alice просит скидку 8% на 60 шт SKU 89234581.\n\nБазовый прайс согласован 15.08.25, дополнительная скидка не утверждена. Разовый запрос или будут ещё — Alice не уточнила.',
+      context_messages: [
+        { who: 'ФФ Alice', dir: 'in', ts: '15:48', text: 'Сергей, привет, есть 60 шт по 89234581 — можешь скидку 8%?' },
+        { who: 'Сергей (бот)', dir: 'out', ts: '15:50', text: 'привет, уточняю по скидке, скоро вернусь', trigger: true }
+      ]
+    },
+    'esc-2026-05-02-0005': {
+      id: 'esc-2026-05-02-0005',
+      status: 'open',
+      priority: 3,
+      contragent_slug: 'ff-alice',
+      contragent_name: 'ФФ Alice + ФФ Bob',
+      chat_title: 'Test_FF_Group',
+      age_state: 'открыта 12 мин назад',
+      summary: 'Alice и Bob дают разные цифры по поставке 4421 — 180 vs 200 коробов. Нужно подтвердить факт приёмки.',
+      context_messages: [
+        { who: 'ФФ Alice', dir: 'in', ts: '16:14', text: '4421 принято 180 коробов' },
+        { who: 'ФФ Bob', dir: 'in', ts: '16:22', text: 'я насчитал 200, у нас разные данные', trigger: true },
+        { who: 'Сергей (бот)', dir: 'out', ts: '16:25', text: 'уточняю по 4421, кто из вас по факту считал' }
+      ]
+    }
+  },
+  chats: [
+    {
+      chat_id: 'Test_FF_Direct',
+      chat_title: 'Test_FF_Direct',
+      avatar: 'A', avatar_grad: 'orange',
+      contragent_names: 'ФФ Alice',
+      mode: 'auto',
+      last_activity: '12 мин назад',
+      open_escalations: 2,
+      max_priority: 1,
+      slug: 'ff-alice'
+    },
+    {
+      chat_id: 'Test_FF_Group',
+      chat_title: 'Test_FF_Group',
+      avatar: 'AB', avatar_grad: 'purple',
+      contragent_names: 'ФФ Alice + ФФ Bob',
+      mode: 'auto',
+      last_activity: '1ч назад',
+      open_escalations: 1,
+      max_priority: 2,
+      slug: null
+    },
+    {
+      chat_id: 'EleStal-FF',
+      chat_title: 'ЭлектроСталь-ФФ',
+      avatar: 'Е', avatar_grad: 'teal',
+      contragent_names: 'Виктор',
+      mode: 'auto',
+      last_activity: '3ч назад',
+      open_escalations: 0,
+      slug: 'ff-victor'
+    },
+    {
+      chat_id: 'Balashikha-Log',
+      chat_title: 'Балашиха-Логистика',
+      avatar: 'Б', avatar_grad: 'pink',
+      contragent_names: 'ФФ Дима',
+      mode: 'silent',
+      last_activity: '6ч назад',
+      open_escalations: 0,
+      slug: 'ff-dima'
+    },
+    {
+      chat_id: 'Podolsk-Partn',
+      chat_title: 'Подольск-Партнёры',
+      avatar: 'П', avatar_grad: 'amber',
+      contragent_names: 'ФФ Сергей П.',
+      mode: 'paused',
+      last_activity: 'вчера',
+      open_escalations: 0,
+      slug: 'ff-sergey-p'
+    },
+    {
+      chat_id: 'ABC-Logistic',
+      chat_title: 'ABC-Логистика',
+      avatar: 'A', avatar_grad: 'blue',
+      contragent_names: 'контрагент без карточки',
+      mode: 'auto',
+      last_activity: '23 мин назад',
+      open_escalations: 0,
+      slug: null,
+      new_card: true
+    }
+  ],
+  contragent: {
+    'ff-alice': {
+      slug: 'ff-alice',
+      name: 'ФФ Alice (Алиса-Логистик)',
+      specialization: 'одежда / средние партии (50–500 шт)',
+      location: 'Электросталь, Московская область',
+      since: 'с 2025-08 (9 мес)',
+      status: 'active',
+      avatar: 'A', avatar_grad: 'orange',
+      metrics_7d: [
+        { value: '47', label: 'сообщений' },
+        { value: '3', label: 'эскалаций' },
+        { value: '91%', label: 'авто-ответ' },
+        { value: '8 сек', label: 'медиана ответа' }
+      ],
+      open_questions: [
+        'Алиса предлагала еженедельный отчёт по остаткам — Сергей не ответил',
+        'Тарифы на хранение паллет — не обсуждали условия'
+      ],
+      open_escalations: [
+        { id: 'esc-2026-05-02-0003', topic: 'недовоз по 4421', age: '2ч 14м', priority: 1, icon: '⚠' },
+        { id: 'esc-2026-05-02-0004', topic: 'скидка 8% на 60 шт', age: '47 мин', priority: 2, icon: '🟡' }
+      ],
+      chats: [
+        { chat_id: 'Test_FF_Direct', chat_title: 'Test_FF_Direct', last_activity: '12 мин назад' },
+        { chat_id: 'Test_FF_Group', chat_title: 'Test_FF_Group', last_activity: '1ч назад' }
+      ],
+      style: [
+        'На «ты», обращается «Сергей»',
+        'Деловой неформальный',
+        'Время реакции: 5–15 мин',
+        'Не пишет после 19:00 и в воскресенье',
+        'Любит точность в цифрах',
+        'При расхождении/браке — фото поставки и ШК короба'
+      ],
+      agreements: [
+        { date: '22.04.26', text: 'отгрузки пн/чт, машина к 14:00' },
+        { date: '10.04.26', text: 'окно приёмки 10–12 (раньше 9–11)' },
+        { date: '15.03.26', text: 'скидка 5% от 1000 шт (SKU 89234561, 87651234)' },
+        { date: '15.08.25', text: 'старт работы, базовый прайс согласован' }
+      ],
+      precedents: [
+        { date: '03.26', text: 'скидка 5% от 1000 шт одобрена' },
+        { date: '02.26', text: 'расхождение 4310, недовоз 3 шт SKU 89234561, возврат без претензий' }
+      ],
+      contacts: {
+        phone: '+7 916 123 45 67',
+        email: 'alice@alisa-logistic.ru',
+        tg: '@ff_alice_test'
+      },
+      updated_at: '2026-05-02 10:00'
+    }
+  }
+};
+
+const GRAD_MAP = {
+  orange: 'var(--grad-orange)',
+  purple: 'var(--grad-purple)',
+  teal: 'var(--grad-teal)',
+  pink: 'var(--grad-pink)',
+  blue: 'var(--grad-blue)',
+  amber: 'var(--grad-amber)'
+};
+
+/* ============================================================
+   STATE & ROUTER
+============================================================ */
+const state = {
+  currentScreen: 'main',
+  history: [],   // for back navigation
+  params: {},    // current screen params
+  modeFilter: 'all',
+  composerMode: 'voice', // voice | text | recorded
+  composerText: ''
+};
+
+function navigate(screen, params = {}, replace = false) {
+  if (!replace && state.currentScreen) {
+    state.history.push({ screen: state.currentScreen, params: { ...state.params } });
+  }
+  state.currentScreen = screen;
+  state.params = params;
+  state.composerMode = 'voice';
+  state.composerText = '';
+  render();
+  window.scrollTo(0, 0);
+
+  // Telegram BackButton sync
+  if (window.Telegram?.WebApp?.BackButton) {
+    if (screen === 'main') window.Telegram.WebApp.BackButton.hide();
+    else window.Telegram.WebApp.BackButton.show();
+  }
+  // MainButton sync — hide; per screen render decides if shown
+  if (window.Telegram?.WebApp?.MainButton) {
+    window.Telegram.WebApp.MainButton.hide();
+  }
+}
+
+function back() {
+  if (state.history.length === 0) {
+    navigate('main', {}, true);
+    return;
+  }
+  const prev = state.history.pop();
+  state.currentScreen = prev.screen;
+  state.params = prev.params;
+  state.composerMode = 'voice';
+  state.composerText = '';
+  render();
+  window.scrollTo(0, 0);
+  if (window.Telegram?.WebApp?.BackButton) {
+    if (state.currentScreen === 'main') window.Telegram.WebApp.BackButton.hide();
+  }
+}
+
+/* ============================================================
+   RENDER HELPERS
+============================================================ */
+const $ = (id) => document.getElementById(id);
+const h = (tag, attrs = {}, children = []) => {
+  const el = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'class') el.className = attrs[k];
+    else if (k === 'style') el.style.cssText = attrs[k];
+    else if (k === 'html') el.innerHTML = attrs[k];
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else el.setAttribute(k, attrs[k]);
+  }
+  for (const c of children) {
+    if (c == null || c === false) continue;
+    if (typeof c === 'string') el.appendChild(document.createTextNode(c));
+    else el.appendChild(c);
+  }
+  return el;
+};
+
+function greeting() {
+  const hr = new Date().getHours();
+  if (hr < 6) return 'Доброй ночи';
+  if (hr < 12) return 'Доброе утро';
+  if (hr < 18) return 'Добрый день';
+  return 'Добрый вечер';
+}
+
+function chevronSVG(size = 18) {
+  const s = `<svg class="chev" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return s;
+}
+function arrowRightSVG() {
+  return `<svg class="action-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function backSVG() {
+  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+/* ============================================================
+   SCREEN: MAIN (escalations-list)
+============================================================ */
+function renderMain() {
+  const app = $('app');
+  app.innerHTML = '';
+
+  // Header
+  const header = h('header', { class: 'header' }, [
+    h('div', { class: 'header-row' }, [
+      h('div', { class: 'header-text' }, [
+        h('div', { class: 'greeting' }, [greeting() + ',']),
+        h('h1', { class: 'username' }, [MOCK_DATA.user.first_name])
+      ]),
+      h('div', { class: 'avatar', onClick: () => toast('Профиль селлера (mock)') }, [MOCK_DATA.user.initial])
+    ])
+  ]);
+  app.appendChild(header);
+
+  // KPI row 3-up
+  const k = MOCK_DATA.kpi_today;
+  const kpiRow = h('div', { class: 'kpi-row' }, [
+    kpiCard(k.open_escalations),
+    kpiCard(k.closed_today),
+    kpiCard(k.avg_time)
+  ]);
+  app.appendChild(kpiRow);
+
+  // Action grid 2x2
+  const actionsSection = h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Что сделать']) ]),
+    h('div', { class: 'actions-grid' }, MOCK_DATA.actions.map(a => actionCard(a)))
+  ]);
+  app.appendChild(actionsSection);
+
+  // In progress (escalations open)
+  const escSection = h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [
+      h('span', {}, ['В работе']),
+      h('span', { class: 'right' }, [MOCK_DATA.escalations.length + ' открытых'])
+    ]),
+    ...MOCK_DATA.escalations.map(esc => escalationCard(esc))
+  ]);
+  app.appendChild(escSection);
+
+  // Recent
+  const recentSection = h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Недавно'])]),
+    ...MOCK_DATA.recent.map(r => recentCard(r))
+  ]);
+  app.appendChild(recentSection);
+
+  // MainButton: "Ответить на N затыков"
+  const mb = h('button', {
+    class: 'main-button',
+    onClick: () => navigate('escalation-detail', { id: MOCK_DATA.escalations[0].id })
+  }, [
+    'Ответить на ' + MOCK_DATA.escalations.length + ' затыка'
+  ]);
+  app.appendChild(mb);
+}
+
+function kpiCard(data) {
+  const dirClass = data.dir === 'up' ? 'up' : data.dir === 'down' ? 'down' : 'flat';
+  return h('div', { class: 'kpi-card' }, [
+    h('div', {}, [
+      h('div', { class: 'kpi-value' }, [String(data.value)]),
+      h('div', { class: 'kpi-label' }, [data.label])
+    ]),
+    h('span', { class: 'kpi-delta ' + dirClass }, [data.delta])
+  ]);
+}
+
+function actionCard(a) {
+  const card = h('button', {
+    class: 'action-card',
+    style: 'background: ' + GRAD_MAP[a.grad],
+    onClick: () => {
+      if (a.id === 'metrics' || a.id === 'contragents') {
+        toast('Раздел в разработке (mock)');
+      } else {
+        navigate(a.screen);
+      }
+    }
+  }, [
+    h('div', { class: 'action-icon' }, [a.icon]),
+    h('div', { class: 'action-title' }, [a.title]),
+    h('div', { class: 'action-subtitle' }, [a.sub])
+  ]);
+  card.insertAdjacentHTML('beforeend', arrowRightSVG());
+  return card;
+}
+
+function escalationCard(esc) {
+  const card = h('button', {
+    class: 'task-card',
+    'data-priority': String(esc.priority),
+    onClick: () => navigate('escalation-detail', { id: esc.id })
+  }, [
+    h('div', { class: 'rail' }, []),
+    h('div', { class: 'task-row' }, [
+      h('span', { class: 'task-title' }, [esc.icon + ' ' + esc.title]),
+      h('span', { class: 'task-time' }, [esc.age])
+    ]),
+    h('div', { class: 'task-subtitle' }, [esc.summary.split('.')[0] + '.']),
+    h('div', { class: 'task-nudge' }, [esc.nudge]),
+    h('div', { class: 'progress' }, [
+      h('div', { class: 'progress-bar', style: 'width:' + esc.progress + '%' }, [])
+    ]),
+    h('div', { class: 'task-meta' }, [
+      h('span', { class: 'pill pill-' + esc.status_class }, [esc.status_label]),
+      h('span', { class: 'task-time muted' }, ['с ' + esc.ts_opened])
+    ])
+  ]);
+  return card;
+}
+
+function recentCard(r) {
+  return h('div', { class: 'task-card', 'data-priority': '3' }, [
+    h('div', { class: 'rail' }, []),
+    h('div', { class: 'task-row' }, [
+      h('span', { class: 'task-title' }, [r.title]),
+      h('span', { class: 'task-time' }, [r.time])
+    ]),
+    h('div', { class: 'task-meta' }, [
+      h('span', { class: 'pill pill-' + r.status }, [r.status_label])
+    ])
+  ]);
+}
+
+/* ============================================================
+   SCREEN: ESCALATION DETAIL
+============================================================ */
+function renderEscalationDetail() {
+  const app = $('app');
+  app.innerHTML = '';
+  const id = state.params.id;
+  const esc = MOCK_DATA.escalation_detail[id];
+  if (!esc) {
+    app.appendChild(topbar('Эскалация'));
+    app.appendChild(h('div', { class: 'empty' }, [
+      h('div', { class: 'icon' }, ['⚠']),
+      h('div', { class: 'title' }, ['Эскалация не найдена']),
+      h('div', { class: 'sub' }, ['Возможно она уже закрыта.'])
+    ]));
+    return;
+  }
+
+  app.appendChild(topbar('Эскалация', { menu: true }));
+
+  // Hero contragent
+  app.appendChild(h('div', { class: 'contragent-hero', onClick: () => navigate('contragent-detail', { slug: esc.contragent_slug }) }, [
+    h('div', { class: 'avatar' }, [esc.contragent_name[0]]),
+    h('div', { class: 'info' }, [
+      h('div', { class: 'name' }, [esc.contragent_name]),
+      h('div', { class: 'meta' }, [esc.chat_title]),
+      h('div', { class: 'age' }, [esc.age_state])
+    ]),
+    h('span', { class: 'chev', html: chevronSVG() }, [])
+  ]));
+
+  // Summary card
+  const labelText = esc.priority === 1 ? '⚠ Суть затыка' : esc.priority === 2 ? '🟡 Суть затыка' : '🟢 Суть затыка';
+  app.appendChild(h('div', { class: 'summary-card', 'data-priority': String(esc.priority) }, [
+    h('div', { class: 'rail' }, []),
+    h('div', { class: 'label' }, [labelText]),
+    h('div', { class: 'body', style: 'white-space: pre-wrap' }, [esc.summary])
+  ]));
+
+  // Context messages
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Контекст чата'])]),
+    ...esc.context_messages.map(m => h('div', { class: 'bubble' + (m.trigger ? ' trigger' : '') }, [
+      h('div', { class: 'who' }, [
+        m.who,
+        h('span', { class: 'ts' }, ['• ' + m.ts]),
+        m.trigger ? h('span', { class: 'ts', style: 'color: var(--c-warning); margin-left: 8px;' }, ['← триггер']) : null
+      ].filter(Boolean)),
+      h('div', { class: 'text' }, [m.text])
+    ]))
+  ]));
+
+  // Composer
+  app.appendChild(renderComposer(esc));
+
+  // Secondary action: dismiss
+  const dismiss = h('button', {
+    class: 'main-button secondary',
+    style: 'bottom: calc(72px + var(--safe-bottom)); height: 44px; font-size: 14px; box-shadow: none;',
+    onClick: () => {
+      showConfirm('Снять эскалацию без ответа?', () => {
+        toast('Эскалация снята', 'success');
+        setTimeout(() => back(), 600);
+      });
+    }
+  }, ['Снять без ответа']);
+  app.appendChild(dismiss);
+
+  // MainButton: send
+  const isReady = state.composerMode === 'recorded' || (state.composerMode === 'text' && state.composerText.trim().length > 0);
+  const mb = h('button', {
+    class: 'main-button',
+    disabled: !isReady,
+    onClick: () => {
+      toast('Отправлено ✓', 'success');
+      setTimeout(() => back(), 1000);
+    }
+  }, ['Отправить ответ']);
+  app.appendChild(mb);
+}
+
+function renderComposer(esc) {
+  const composer = h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Твой ответ'])]),
+    h('div', { class: 'composer', id: 'composer-box' }, [composerInner()])
+  ]);
+  return composer;
+}
+
+function composerInner() {
+  if (state.composerMode === 'recorded') {
+    return h('div', {}, [
+      h('div', { class: 'voice-recorded' }, [
+        h('div', { class: 'icon' }, ['🎤']),
+        h('div', { class: 'info' }, [
+          h('div', { class: 'stt' }, ['"оформи возврат на 8 шт sku 89234561"']),
+          h('div', { class: 'duration' }, ['voice 0:14 • распознано'])
+        ]),
+        h('div', { class: 'voice-actions' }, [
+          h('button', { onClick: () => toast('▶ воспроизведение (mock)') }, ['▶']),
+          h('button', { onClick: () => { state.composerMode = 'voice'; refreshComposer(); } }, ['×'])
+        ])
+      ]),
+      h('div', { class: 'switch-row' }, [
+        h('a', { onClick: () => { state.composerMode = 'voice'; refreshComposer(); } }, ['Перезаписать'])
+      ])
+    ]);
+  }
+  if (state.composerMode === 'text') {
+    return h('div', {}, [
+      h('textarea', {
+        placeholder: 'Напиши что ответить... Можно коротко, бот доформулирует.',
+        oninput: (e) => { state.composerText = e.target.value; updateMainButton(); }
+      }, []),
+      h('div', { class: 'switch-row' }, [
+        h('a', { onClick: () => { state.composerMode = 'voice'; state.composerText = ''; refreshComposer(); } }, ['🎤 переключить на голос'])
+      ])
+    ]);
+  }
+  // default voice
+  return h('div', {}, [
+    h('button', {
+      class: 'voice-btn',
+      onClick: () => {
+        // Simulate recording → recorded
+        toast('Запись... отпусти');
+        setTimeout(() => { state.composerMode = 'recorded'; refreshComposer(); }, 800);
+      }
+    }, ['🎤  Нажми и удерживай']),
+    h('div', { class: 'switch-row' }, [
+      h('a', { onClick: () => { state.composerMode = 'text'; refreshComposer(); } }, ['✏ написать текстом'])
+    ])
+  ]);
+}
+
+function refreshComposer() {
+  const box = $('composer-box');
+  if (!box) return;
+  box.innerHTML = '';
+  box.appendChild(composerInner());
+  updateMainButton();
+}
+
+function updateMainButton() {
+  // Re-render only the main button. Simplest approach — re-render screen.
+  // But to avoid losing focus on textarea, do a light update.
+  const buttons = document.querySelectorAll('.main-button');
+  if (!buttons.length) return;
+  const sendBtn = buttons[buttons.length - 1];
+  const isReady = state.composerMode === 'recorded' || (state.composerMode === 'text' && state.composerText.trim().length > 0);
+  if (isReady) sendBtn.removeAttribute('disabled');
+  else sendBtn.setAttribute('disabled', 'true');
+}
+
+/* ============================================================
+   SCREEN: CHATS LIST
+============================================================ */
+function renderChatsList() {
+  const app = $('app');
+  app.innerHTML = '';
+  app.appendChild(topbar('Чаты (' + MOCK_DATA.chats.length + ')'));
+
+  // Filter chips
+  const totals = { all: MOCK_DATA.chats.length };
+  for (const m of ['auto', 'silent', 'paused']) totals[m] = MOCK_DATA.chats.filter(c => c.mode === m).length;
+  const chips = ['all', 'auto', 'silent', 'paused'].map(f => h('button', {
+    class: 'chip' + (state.modeFilter === f ? ' active' : ''),
+    onClick: () => { state.modeFilter = f; renderChatsList(); }
+  }, [labelForFilter(f) + ' (' + totals[f] + ')']));
+  app.appendChild(h('div', { class: 'chips-row' }, chips));
+
+  // List
+  const filtered = state.modeFilter === 'all' ? MOCK_DATA.chats : MOCK_DATA.chats.filter(c => c.mode === state.modeFilter);
+  if (filtered.length === 0) {
+    app.appendChild(h('div', { class: 'empty' }, [
+      h('div', { class: 'icon' }, [iconForMode(state.modeFilter)]),
+      h('div', { class: 'title' }, ['Чатов в этом режиме нет']),
+      h('div', { class: 'sub' }, ['Все чаты сейчас в другом режиме.'])
+    ]));
+    return;
+  }
+
+  for (const c of filtered) {
+    app.appendChild(chatCard(c));
+  }
+}
+
+function labelForFilter(f) {
+  return { all: 'Все', auto: 'Auto', silent: 'Silent', paused: 'Paused' }[f];
+}
+function iconForMode(m) {
+  return { auto: '🟢', silent: '🔇', paused: '⏸', all: '💬' }[m];
+}
+
+function chatCard(c) {
+  const escMeta = c.open_escalations > 0
+    ? c.open_escalations + ' эскал. ' + (c.max_priority === 1 ? '⚠' : c.max_priority === 2 ? '🟡' : '🟢')
+    : null;
+  return h('div', {
+    class: 'chat-card',
+    onClick: () => {
+      if (c.slug) navigate('contragent-detail', { slug: c.slug });
+      else if (c.new_card) toast('Создать карточку контрагента (mock)');
+      else toast('Group chat — выбор контрагента (mock)');
+    }
+  }, [
+    h('div', { class: 'chat-avatar', style: 'background:' + GRAD_MAP[c.avatar_grad] }, [c.avatar]),
+    h('div', { class: 'chat-info' }, [
+      h('div', { class: 'chat-title-row' }, [
+        h('div', { class: 'chat-title' }, [c.chat_title]),
+        h('div', { style: 'display:flex; gap:6px; align-items:center;' }, [
+          h('span', {
+            class: 'chat-mode ' + c.mode,
+            onClick: (e) => { e.stopPropagation(); openModeSheet(c); }
+          }, [iconForMode(c.mode) + ' ' + c.mode]),
+          h('span', { class: 'chev', html: chevronSVG(16) }, [])
+        ])
+      ]),
+      h('div', { class: 'chat-subtitle' }, [c.contragent_names]),
+      h('div', { class: 'chat-meta' }, [
+        c.last_activity + (escMeta ? ' • ' + escMeta : '')
+      ])
+    ])
+  ]);
+}
+
+function openModeSheet(chat) {
+  const sheet = $('sheet');
+  const backdrop = $('sheet-backdrop');
+  sheet.innerHTML = '';
+  sheet.appendChild(h('div', { class: 'grabber' }, []));
+  sheet.appendChild(h('h3', {}, [chat.chat_title]));
+  sheet.appendChild(h('div', { class: 'muted', style: 'font-size:13px; margin-bottom:14px;' }, [chat.contragent_names]));
+
+  const opts = [
+    { id: 'auto', name: '🟢 Auto', desc: 'Бот отвечает контрагенту автономно, эскалирует тебе важное.' },
+    { id: 'silent', name: '🔇 Silent', desc: 'Бот читает чат и пишет тебе в DM по важному, но в чат ничего не отправляет.' },
+    { id: 'paused', name: '⏸ Paused', desc: 'Бот не читает чат и не пишет. Включи когда захочешь обратно.' }
+  ];
+  let selected = chat.mode;
+  for (const o of opts) {
+    const node = h('div', {
+      class: 'mode-option' + (o.id === selected ? ' active' : ''),
+      onClick: () => {
+        selected = o.id;
+        sheet.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
+        node.classList.add('active');
+      }
+    }, [
+      h('div', { class: 'body' }, [
+        h('div', { class: 'name' }, [o.name]),
+        h('div', { class: 'desc' }, [o.desc])
+      ]),
+      h('div', { class: 'check' }, ['✓'])
+    ]);
+    sheet.appendChild(node);
+  }
+
+  sheet.appendChild(h('button', {
+    class: 'main-button',
+    style: 'position: static; width: 100%; max-width: none; transform: none; margin-top: 14px; box-shadow: none;',
+    onClick: () => {
+      chat.mode = selected;
+      closeSheet();
+      toast('Режим изменён: ' + selected, 'success');
+      renderChatsList();
+    }
+  }, ['Применить']));
+
+  backdrop.classList.add('open');
+  sheet.classList.add('open');
+  backdrop.onclick = closeSheet;
+}
+
+function closeSheet() {
+  $('sheet').classList.remove('open');
+  $('sheet-backdrop').classList.remove('open');
+}
+
+/* ============================================================
+   SCREEN: CONTRAGENT DETAIL
+============================================================ */
+function renderContragentDetail() {
+  const app = $('app');
+  app.innerHTML = '';
+  const slug = state.params.slug;
+  const c = MOCK_DATA.contragent[slug] || MOCK_DATA.contragent['ff-alice']; // fallback for demo
+
+  app.appendChild(topbar('Контрагент', { menu: true }));
+
+  // Hero
+  app.appendChild(h('div', { class: 'contragent-hero' }, [
+    h('div', { class: 'avatar', style: 'background:' + GRAD_MAP[c.avatar_grad] + '; width:64px; height:64px; font-size:24px;' }, [c.avatar]),
+    h('div', { class: 'info' }, [
+      h('div', { class: 'name', style: 'font-size:18px;' }, [c.name]),
+      h('div', { class: 'meta' }, [c.specialization]),
+      h('div', { class: 'meta' }, [c.location]),
+      h('div', { class: 'age' }, [c.since + ' ' + (c.status === 'active' ? '🟢' : '🟡')])
+    ])
+  ]));
+
+  // Metrics 7d
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Активность за 7 дней'])]),
+    h('div', { class: 'metrics-grid' }, c.metrics_7d.map(m => h('div', { class: 'metric-card' }, [
+      h('div', { class: 'metric-value' }, [m.value]),
+      h('div', { class: 'metric-label' }, [m.label])
+    ])))
+  ]));
+
+  // Open questions
+  if (c.open_questions?.length) {
+    app.appendChild(h('section', { class: 'section' }, [
+      h('div', { class: 'section-title' }, [h('span', {}, ['Открытые вопросы (' + c.open_questions.length + ')'])]),
+      h('div', { class: 'checklist' }, c.open_questions.map(q => h('div', { class: 'item' }, [
+        h('div', { class: 'box' }, []),
+        h('div', {}, [q])
+      ])))
+    ]));
+  }
+
+  // Open escalations
+  if (c.open_escalations?.length) {
+    app.appendChild(h('section', { class: 'section' }, [
+      h('div', { class: 'section-title' }, [h('span', {}, ['Открытые эскалации (' + c.open_escalations.length + ')'])]),
+      ...c.open_escalations.map(esc => h('button', {
+        class: 'task-card',
+        'data-priority': String(esc.priority),
+        onClick: () => navigate('escalation-detail', { id: esc.id })
+      }, [
+        h('div', { class: 'rail' }, []),
+        h('div', { class: 'task-row' }, [
+          h('span', { class: 'task-title' }, [esc.icon + ' ' + esc.topic]),
+          h('span', { class: 'task-time' }, [esc.age])
+        ])
+      ]))
+    ]));
+  }
+
+  // All chats
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Все чаты (' + c.chats.length + ')'])]),
+    ...c.chats.map(ch => h('div', {
+      class: 'chat-card',
+      onClick: () => toast('Открыть чат в Telegram (mock)')
+    }, [
+      h('div', { class: 'chat-info' }, [
+        h('div', { class: 'chat-title' }, [ch.chat_title]),
+        h('div', { class: 'chat-meta' }, [ch.last_activity])
+      ]),
+      h('span', { class: 'chev', html: chevronSVG() }, [])
+    ]))
+  ]));
+
+  // Style of communication
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Стиль коммуникации'])]),
+    h('div', { class: 'bullets' }, c.style.map(s => h('div', { class: 'bullet' }, [s])))
+  ]));
+
+  // Agreements timeline
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Договорённости'])]),
+    h('div', { class: 'timeline' }, c.agreements.map(a => h('div', { class: 'row' }, [
+      h('div', { class: 'date' }, [a.date]),
+      h('div', { class: 'text' }, [a.text])
+    ])))
+  ]));
+
+  // Precedents
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Прецеденты'])]),
+    h('div', { class: 'timeline' }, c.precedents.map(a => h('div', { class: 'row' }, [
+      h('div', { class: 'date' }, [a.date]),
+      h('div', { class: 'text' }, [a.text])
+    ])))
+  ]));
+
+  // Contacts
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Контакты'])]),
+    h('div', { class: 'contacts' }, [
+      contactRow('📞', c.contacts.phone, () => toast('tel: ' + c.contacts.phone)),
+      contactRow('✉', c.contacts.email, () => toast('mailto: ' + c.contacts.email)),
+      contactRow('📨', c.contacts.tg, () => toast('tg: ' + c.contacts.tg))
+    ])
+  ]));
+
+  // Footer
+  app.appendChild(h('div', { class: 'empty', style: 'padding: 24px 0 8px;' }, [
+    h('div', { class: 'sub' }, ['Карточка обновлена ' + c.updated_at])
+  ]));
+
+  // MainButton
+  app.appendChild(h('button', {
+    class: 'main-button',
+    onClick: () => toast('Открыть чат в Telegram (mock)')
+  }, ['Открыть чат в Telegram']));
+}
+
+function contactRow(icon, text, onClick) {
+  return h('div', { class: 'contact-row', onClick }, [
+    h('div', { class: 'icon' }, [icon]),
+    h('div', { class: 'text' }, [text]),
+    h('span', { class: 'arrow', html: chevronSVG(16) }, [])
+  ]);
+}
+
+/* ============================================================
+   COMMON COMPONENTS
+============================================================ */
+function topbar(title, opts = {}) {
+  return h('div', { class: 'topbar', style: 'position: relative;' }, [
+    h('button', { class: 'back-btn', onClick: () => back() }, [
+      h('span', { html: backSVG() }, []),
+      h('span', {}, ['Назад'])
+    ]),
+    h('div', { class: 'topbar-title' }, [title]),
+    opts.menu
+      ? h('button', { class: 'menu-btn', onClick: () => toast('Меню (mock): открыть в TG, скопировать ID, снять без ответа') }, ['⋯'])
+      : h('div', { style: 'width: 32px;' }, [])
+  ]);
+}
+
+function toast(msg, type = '') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+  }, 1800);
+}
+
+function showConfirm(msg, onYes) {
+  if (window.Telegram?.WebApp?.showConfirm) {
+    window.Telegram.WebApp.showConfirm(msg, (ok) => { if (ok) onYes(); });
+  } else {
+    if (confirm(msg)) onYes();
+  }
+}
+
+/* ============================================================
+   MAIN RENDER ROUTER
+============================================================ */
+function render() {
+  const screen = state.currentScreen;
+  if (screen === 'main') return renderMain();
+  if (screen === 'escalations-list') return renderMain(); // alias for now
+  if (screen === 'escalation-detail') return renderEscalationDetail();
+  if (screen === 'chats-list') return renderChatsList();
+  if (screen === 'contragent-detail') return renderContragentDetail();
+  // default
+  renderMain();
+}
+
+/* ============================================================
+   INIT — telegram theme integration
+============================================================ */
+function initTelegramTheme() {
+  const tg = window.Telegram?.WebApp;
+  if (!tg) return;
+  try {
+    tg.ready();
+    tg.expand();
+    if (tg.themeParams && tg.themeParams.bg_color) {
+      // Apply TG theme override (let real TG dark/light theme drive colors)
+      const tp = tg.themeParams;
+      const root = document.documentElement;
+      if (tp.bg_color) root.style.setProperty('--bg', tp.bg_color);
+      if (tp.secondary_bg_color) root.style.setProperty('--surface', tp.secondary_bg_color);
+      if (tp.text_color) root.style.setProperty('--text', tp.text_color);
+      if (tp.hint_color) root.style.setProperty('--hint', tp.hint_color);
+      if (tp.button_color) root.style.setProperty('--button', tp.button_color);
+      if (tp.link_color) root.style.setProperty('--accent', tp.link_color);
+    }
+    tg.onEvent('backButtonClicked', () => back());
+    if (tg.BackButton) tg.BackButton.hide();
+  } catch (e) {
+    console.warn('TG WebApp init failed (probably running in browser)', e);
+  }
+}
+
+initTelegramTheme();
+render();
+</script>
+</body>
+</html>
