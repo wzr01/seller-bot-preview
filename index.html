@@ -237,6 +237,22 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   box-shadow: var(--shadow-card);
   flex-shrink: 0;
 }
+/* Header right cluster (theme toggle + avatar) */
+.header-right {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface);
+  display: grid; place-items: center;
+  font-size: 18px; line-height: 1;
+  border: 1px solid var(--input-border);
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  flex-shrink: 0;
+  transition: transform 120ms ease, background 160ms ease;
+}
+.theme-toggle:active { transform: scale(0.92); }
 
 /* Section title */
 .section { margin-top: 22px; }
@@ -1040,7 +1056,14 @@ const state = {
   params: {},    // current screen params
   modeFilter: 'all',
   composerMode: 'voice', // voice | text | recorded
-  composerText: ''
+  composerText: '',
+  themeMode: (function () {
+    try {
+      const saved = localStorage.getItem('themeMode');
+      if (saved === 'auto' || saved === 'light' || saved === 'dark') return saved;
+    } catch (e) { /* ignore (private mode etc.) */ }
+    return 'auto';
+  })()
 };
 
 function navigate(screen, params = {}, replace = false) {
@@ -1136,7 +1159,15 @@ function renderMain() {
         h('div', { class: 'greeting' }, [greeting() + ',']),
         h('h1', { class: 'username' }, [MOCK_DATA.user.first_name])
       ]),
-      h('div', { class: 'avatar', onClick: () => toast('Профиль селлера (mock)') }, [MOCK_DATA.user.initial])
+      h('div', { class: 'header-right' }, [
+        h('div', {
+          class: 'theme-toggle',
+          id: 'theme-toggle',
+          title: 'Переключить тему',
+          onClick: cycleThemeMode
+        }, [themeIcon(state.themeMode)]),
+        h('div', { class: 'avatar', onClick: () => toast('Профиль селлера (mock)') }, [MOCK_DATA.user.initial])
+      ])
     ])
   ]);
   app.appendChild(header);
@@ -1709,22 +1740,76 @@ function render() {
 }
 
 /* ============================================================
-   INIT — auto theme (light / dark)
+   INIT — theme (auto / light / dark)
    Источник истины:
-     1. Telegram WebApp colorScheme  (tg.colorScheme === 'light' | 'dark')
-     2. fallback на window.matchMedia('(prefers-color-scheme: light)')
-   В Telegram дополнительно накладываем tg.themeParams.* поверх — пусть
+     state.themeMode — пользовательский выбор (localStorage 'themeMode').
+       'auto'  → следуем за TG.colorScheme либо prefers-color-scheme
+       'light' → форсируем светлую
+       'dark'  → форсируем тёмную
+   В Telegram при auto-режиме накладываем tg.themeParams.* поверх — пусть
    нативная палитра пользователя выигрывает у наших дефолтов.
-   Подписаны на 'themeChanged' (TG) и 'change' (matchMedia) — переключение
-   темы в рантайме отрабатывает без перезагрузки.
+   Подписаны на 'themeChanged' (TG) и 'change' (matchMedia), но реагируем
+   только когда themeMode === 'auto'.
 ============================================================ */
 const THEME_META_COLORS = { dark: '#0F1620', light: '#F5F7FA' };
+const THEME_LABELS = { auto: 'авто', light: 'светлая', dark: 'тёмная' };
+const THEME_ICONS  = { auto: '🌓', light: '☀', dark: '🌙' };
+
+function themeIcon(mode) {
+  return THEME_ICONS[mode] || THEME_ICONS.auto;
+}
+
+function systemScheme() {
+  const tg = window.Telegram?.WebApp;
+  if (tg && tg.colorScheme) return tg.colorScheme === 'light' ? 'light' : 'dark';
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+  return 'dark';
+}
 
 function applyTheme(scheme) {
   const t = scheme === 'light' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', t);
   const meta = document.getElementById('meta-theme-color');
   if (meta) meta.setAttribute('content', THEME_META_COLORS[t]);
+}
+
+/* Применить текущий themeMode (с учётом системы для 'auto'). */
+function applyThemeMode() {
+  const mode = state.themeMode;
+  const effective = (mode === 'auto') ? systemScheme() : mode;
+  applyTheme(effective);
+  // В auto-режиме разрешаем TG-палитре «протекать»; в forced-режимах
+  // чистим инлайн-переопределения, чтобы наш data-theme был чистым.
+  const root = document.documentElement;
+  if (mode === 'auto') {
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.themeParams) applyTelegramThemeParams(tg.themeParams);
+  } else {
+    [
+      '--bg','--surface','--section-bg','--text','--text-2','--hint',
+      '--accent','--button','--button-text','--c-danger'
+    ].forEach((p) => root.style.removeProperty(p));
+    const meta = document.getElementById('meta-theme-color');
+    if (meta) meta.setAttribute('content', THEME_META_COLORS[effective]);
+  }
+  // Sync icon на тумблере, если он уже отрисован.
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = themeIcon(mode);
+}
+
+/* Cycle: auto → light → dark → auto (вызывается onClick тумблера). */
+function cycleThemeMode() {
+  const order = ['auto', 'light', 'dark'];
+  const next = order[(order.indexOf(state.themeMode) + 1) % order.length];
+  state.themeMode = next;
+  try { localStorage.setItem('themeMode', next); } catch (e) { /* ignore */ }
+  applyThemeMode();
+  // Haptic — мягкий тап в Telegram WebApp.
+  try {
+    const hf = window.Telegram?.WebApp?.HapticFeedback;
+    if (hf && hf.impactOccurred) hf.impactOccurred('light');
+  } catch (e) { /* noop */ }
+  toast('Тема: ' + THEME_LABELS[next]);
 }
 
 function applyTelegramThemeParams(tp) {
@@ -1753,25 +1838,15 @@ function initTheme() {
   const tg = window.Telegram?.WebApp;
   const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
-  // Initial apply
-  if (tg && tg.colorScheme) {
-    applyTheme(tg.colorScheme);
-  } else if (mql && mql.matches) {
-    applyTheme('light');
-  } else {
-    applyTheme('dark');
-  }
-
-  // Telegram WebApp init
+  // Telegram WebApp init (важно сделать до первого applyThemeMode,
+  // чтобы tg.colorScheme и themeParams уже были доступны).
   if (tg) {
     try {
       tg.ready();
       tg.expand();
-      applyTelegramThemeParams(tg.themeParams);
-      // Runtime: пользователь меняет тему в TG → подхватываем
       tg.onEvent('themeChanged', () => {
-        applyTheme(tg.colorScheme);
-        applyTelegramThemeParams(tg.themeParams);
+        // В auto — следуем за TG; в forced-режимах игнорим.
+        if (state.themeMode === 'auto') applyThemeMode();
       });
       tg.onEvent('backButtonClicked', () => back());
       if (tg.BackButton) tg.BackButton.hide();
@@ -1780,12 +1855,16 @@ function initTheme() {
     }
   }
 
-  // Browser fallback: системное переключение light/dark
-  if (mql && !tg) {
-    const onChange = (e) => applyTheme(e.matches ? 'light' : 'dark');
+  // Browser fallback: системное переключение light/dark — реагируем
+  // тоже только в auto-режиме.
+  if (mql) {
+    const onChange = () => { if (state.themeMode === 'auto') applyThemeMode(); };
     if (mql.addEventListener) mql.addEventListener('change', onChange);
     else if (mql.addListener) mql.addListener(onChange); // Safari < 14
   }
+
+  // Первичное применение по сохранённому режиму.
+  applyThemeMode();
 }
 
 initTheme();
