@@ -827,11 +827,11 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .screen.active { display: block; animation: fadeIn 200ms ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-/* Toast — sits well above MainButton (12px+50px=62px from bottom).
-   144px gives ~80px clear gap to definitely avoid visual overlap on any device incl. TG WebApp. */
+/* Toast — sits well above MainButton; hide via opacity (transform-based hide left it
+   partially on-screen with bottom: 144px). */
 .toast {
   position: fixed;
-  left: 50%; transform: translate(-50%, 80px);
+  left: 50%; transform: translateX(-50%);
   bottom: calc(144px + var(--safe-bottom));
   background: var(--surface-2);
   color: var(--text);
@@ -840,10 +840,12 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   font-size: 14px;
   box-shadow: var(--shadow-pop);
   z-index: 200;
-  transition: transform 240ms ease;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 0s linear 200ms;
   pointer-events: none;
 }
-.toast.show { transform: translate(-50%, 0); }
+.toast.show { opacity: 1; visibility: visible; transition: opacity 200ms ease, visibility 0s; }
 .toast.success { background: var(--c-success); color: var(--toast-success-text); }
 .toast.error { background: var(--c-danger); color: #FFFFFF; }
 
@@ -2254,6 +2256,16 @@ function renderContragentsList() {
       }));
 
   app.appendChild(topbar('Контрагенты (' + items.length + ')'));
+
+  // "+ Добавить" button at top
+  const addBtn = h('button', {
+    class: 'main-button secondary',
+    style: 'position: static; transform: none; margin: 8px 0 12px; width: 100%; max-width: none; height: 44px; font-size: 14px; box-shadow: none;',
+    onClick: () => {
+      toast('Добавление пока недоступно — карточку создаём в vault через Obsidian. UI в разработке.', '');
+    }
+  }, ['+ Добавить контрагента']);
+  app.appendChild(addBtn);
 
   if (items.length === 0) {
     app.appendChild(h('div', { class: 'empty' }, [
