@@ -1235,6 +1235,18 @@ function mapApiContragent(api) {
 }
 
 async function loadLiveData() {
+  // Wipe demo data before fetching so failed API calls don't leave stale demo on screen.
+  // Real production data — even if empty — is what we want shown.
+  MOCK_DATA.escalations = [];
+  MOCK_DATA.recent = [];
+  if (MOCK_DATA.kpi_today && MOCK_DATA.kpi_today.open_escalations) {
+    MOCK_DATA.kpi_today.open_escalations.value = 0;
+  }
+  if (MOCK_DATA.actions) {
+    const a = MOCK_DATA.actions.find(x => x.id === 'escalations');
+    if (a) a.sub = '0 открытых';
+  }
+
   const [esc, chats, contragents] = await Promise.all([
     apiFetch('/escalations'),
     apiFetch('/chats'),
@@ -1451,13 +1463,22 @@ function renderMain() {
   app.appendChild(actionsSection);
 
   // In progress (escalations open)
-  const escSection = h('section', { class: 'section' }, [
+  const escChildren = [
     h('div', { class: 'section-title' }, [
       h('span', {}, ['В работе']),
       h('span', { class: 'right' }, [MOCK_DATA.escalations.length + ' открытых'])
-    ]),
-    ...MOCK_DATA.escalations.map(esc => escalationCard(esc))
-  ]);
+    ])
+  ];
+  if (MOCK_DATA.escalations.length === 0) {
+    escChildren.push(h('div', { class: 'empty', style: 'padding: 24px 16px;' }, [
+      h('div', { class: 'icon' }, ['✓']),
+      h('div', { class: 'title' }, ['Открытых эскалаций нет']),
+      h('div', { class: 'sub' }, ['Все вопросы от контрагентов закрыты.'])
+    ]));
+  } else {
+    for (const esc of MOCK_DATA.escalations) escChildren.push(escalationCard(esc));
+  }
+  const escSection = h('section', { class: 'section' }, escChildren);
   app.appendChild(escSection);
 
   // Recent
@@ -1467,14 +1488,16 @@ function renderMain() {
   ]);
   app.appendChild(recentSection);
 
-  // MainButton: "Ответить на N затыков"
-  const mb = h('button', {
-    class: 'main-button',
-    onClick: () => navigate('escalation-detail', { id: MOCK_DATA.escalations[0].id })
-  }, [
-    'Ответить на ' + MOCK_DATA.escalations.length + ' затыка'
-  ]);
-  app.appendChild(mb);
+  // MainButton: "Ответить на N затыков" — only when there are open escalations.
+  if (MOCK_DATA.escalations.length > 0) {
+    const mb = h('button', {
+      class: 'main-button',
+      onClick: () => navigate('escalation-detail', { id: MOCK_DATA.escalations[0].id })
+    }, [
+      'Ответить на ' + MOCK_DATA.escalations.length + ' затыка'
+    ]);
+    app.appendChild(mb);
+  }
 }
 
 function kpiCard(data) {
