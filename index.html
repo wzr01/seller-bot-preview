@@ -1115,6 +1115,177 @@ const MOCK_DATA = {
   }
 };
 
+/* ============================================================
+   API CLIENT (Mini App backend on n8n)
+   Endpoints under https://n8nbazilmain.ru/webhook/miniapp/...
+   Auth via X-TG-InitData header (Telegram WebApp HMAC).
+   On any failure we silently fall back to MOCK_DATA so the demo keeps working.
+============================================================ */
+const API = {
+  base: 'https://n8nbazilmain.ru/webhook/miniapp',
+  isLive: false,
+  notifiedDemo: false,
+  initData: (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || ''
+};
+
+async function apiFetch(path, opts = {}) {
+  const url = API.base + path;
+  const headers = Object.assign({
+    'Accept': 'application/json',
+    'X-TG-InitData': API.initData || ''
+  }, opts.headers || {});
+  if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timeoutId = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null;
+  try {
+    const res = await fetch(url, {
+      method: opts.method || 'GET',
+      headers,
+      body: opts.body ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      return { ok: false, status: res.status, error: txt || res.statusText };
+    }
+    const data = await res.json().catch(() => null);
+    return { ok: true, status: res.status, data };
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    return { ok: false, status: 0, error: String(err && err.message || err) };
+  }
+}
+
+function maybeNotifyDemoOnce() {
+  if (API.notifiedDemo) return;
+  API.notifiedDemo = true;
+  setTimeout(() => { try { toast('работает в demo-режиме (API недоступно)'); } catch (e) {} }, 0);
+}
+
+function mapApiEscalation(e) {
+  const ageMin = Number(e.age_min) || 0;
+  const ageStr = ageMin >= 60
+    ? Math.floor(ageMin / 60) + 'ч ' + (ageMin % 60) + 'м'
+    : ageMin + ' мин';
+  return {
+    id: e.id,
+    priority: 2,
+    icon: '🟡',
+    chat_title: e.chat_title || e.chat_id,
+    chat_id: e.chat_id,
+    contragent_slug: e.contragent_slug || null,
+    contragent_name: e.contragent_slug || e.chat_title || '',
+    age: ageStr,
+    title: (e.chat_title || e.chat_id) + ' — ' + (e.summary || '').slice(0, 60),
+    summary: e.summary || '',
+    nudge: '',
+    progress: 30,
+    status_label: 'Открыто',
+    status_class: 'queued',
+    ts_opened: (e.ts || '').slice(11, 16)
+  };
+}
+
+function mapApiChat(c) {
+  const grads = ['orange', 'purple', 'teal', 'pink', 'amber', 'blue'];
+  let h = 0;
+  for (let i = 0; i < (c.chat_id || '').length; i++) h = (h * 31 + c.chat_id.charCodeAt(i)) >>> 0;
+  return {
+    chat_id: c.chat_id,
+    chat_title: c.title || c.chat_id,
+    avatar: ((c.title || c.chat_id || '?').toString().trim()[0] || '?').toUpperCase(),
+    avatar_grad: grads[h % grads.length],
+    contragent_names: c.contragent_slug || '—',
+    mode: c.mode || 'auto',
+    last_activity: c.last_activity ? new Date(c.last_activity).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '',
+    open_escalations: 0,
+    slug: c.contragent_slug || null
+  };
+}
+
+function mapApiContragent(api) {
+  return {
+    slug: api.slug,
+    name: api.primary_name,
+    specialization: api.specialization || '',
+    location: api.location || '',
+    since: '',
+    status: 'active',
+    avatar: ((api.primary_name || api.slug || '?').toString().trim()[0] || '?').toUpperCase(),
+    avatar_grad: 'orange',
+    metrics_7d: [],
+    last_agreements: api.agreements
+      ? api.agreements.split('\n').filter(s => s.trim()).slice(0, 3).map(s => ({ date: '', text: s.replace(/^[-*\s]+/, '').trim() }))
+      : [],
+    precedents: [],
+    contacts: { phone: api.phone || '', email: api.email || '', tg: api.tg_username || '' },
+    schedule: api.schedule || '',
+    tariffs: api.tariffs || '',
+    agreements: api.agreements || '',
+    notes: api.notes || '',
+    tg_username: api.tg_username || '',
+    phone: api.phone || '',
+    email: api.email || '',
+    tg_chat_ids: [],
+    updated_at: ''
+  };
+}
+
+async function loadLiveData() {
+  const [esc, chats, contragents] = await Promise.all([
+    apiFetch('/escalations'),
+    apiFetch('/chats'),
+    apiFetch('/contragents')
+  ]);
+  let anyOk = false;
+  if (esc.ok && esc.data && Array.isArray(esc.data.data)) {
+    MOCK_DATA.escalations = esc.data.data.map(mapApiEscalation);
+    if (MOCK_DATA.kpi_today && MOCK_DATA.kpi_today.open_escalations) {
+      MOCK_DATA.kpi_today.open_escalations.value = MOCK_DATA.escalations.length;
+    }
+    if (MOCK_DATA.actions) {
+      const a = MOCK_DATA.actions.find(x => x.id === 'escalations');
+      if (a) a.sub = MOCK_DATA.escalations.length + ' открытых';
+    }
+    anyOk = true;
+  }
+  if (chats.ok && chats.data && Array.isArray(chats.data.data)) {
+    MOCK_DATA.chats = chats.data.data.map(mapApiChat);
+    if (MOCK_DATA.actions) {
+      const a = MOCK_DATA.actions.find(x => x.id === 'chats');
+      if (a) a.sub = MOCK_DATA.chats.length + ' активных';
+    }
+    anyOk = true;
+  }
+  if (contragents.ok && contragents.data && Array.isArray(contragents.data.data)) {
+    if (MOCK_DATA.actions) {
+      const a = MOCK_DATA.actions.find(x => x.id === 'contragents');
+      if (a) a.sub = contragents.data.data.length + ' карточек';
+    }
+    MOCK_DATA._api_contragents = contragents.data.data;
+    anyOk = true;
+  }
+  API.isLive = anyOk;
+  if (!anyOk) maybeNotifyDemoOnce();
+}
+
+async function loadContragentDetail(slug) {
+  const r = await apiFetch('/contragent?slug=' + encodeURIComponent(slug));
+  if (!r.ok || !r.data || r.data.ok === false) return null;
+  return mapApiContragent(r.data);
+}
+
+async function saveContragentApi(slug, fields) {
+  const r = await apiFetch('/contragent-save?slug=' + encodeURIComponent(slug), {
+    method: 'POST',
+    body: fields
+  });
+  return r.ok ? r.data : { ok: false, error: r.error || 'network' };
+}
+
+window.SellerAPI = { apiFetch, loadLiveData, loadContragentDetail, saveContragentApi, API };
+
 const GRAD_MAP = {
   orange: 'var(--grad-orange)',
   purple: 'var(--grad-purple)',
@@ -1658,7 +1829,20 @@ function renderContragentDetail() {
   const app = $('app');
   app.innerHTML = '';
   const slug = state.params.slug;
-  const c = MOCK_DATA.contragent[slug] || MOCK_DATA.contragent['ff-alice']; // fallback for demo
+  let c = MOCK_DATA.contragent[slug];
+
+  // Async lazy-load from API on first visit (cached into MOCK_DATA.contragent).
+  if (!c && typeof loadContragentDetail === 'function' && state._loadingContragent !== slug) {
+    state._loadingContragent = slug;
+    loadContragentDetail(slug).then(live => {
+      state._loadingContragent = null;
+      if (live) {
+        MOCK_DATA.contragent[slug] = live;
+        if (state.currentScreen === 'contragent-detail' && state.params.slug === slug) render();
+      }
+    });
+  }
+  c = c || MOCK_DATA.contragent['ff-alice']; // fallback for demo
 
   if (state.editingContragent) return renderContragentEdit(app, slug, c);
 
@@ -1958,19 +2142,28 @@ function saveContragentEdit(slug, c) {
   state.editSaving = true;
   render();
 
-  // POST contract (agreed with builder):
-  //   POST /webhook/miniapp/contragent/{slug}  body = flat fields
-  //   200 -> {ok: true, updated_at: ...}
-  //   error -> {ok: false, error: ...}
-  fetch('/webhook/miniapp/contragent/' + encodeURIComponent(slug), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(draft)
-  })
-    .then(r => r.json().catch(() => ({ ok: r.ok })))
+  // POST to n8n miniapp API:
+  //   POST https://n8nbazilmain.ru/webhook/miniapp/contragent-save?slug=<slug>
+  //   header X-TG-InitData required (handled by saveContragentApi above)
+  //   200 + {ok: true, ...}                    -> persisted to vault + git
+  //   200 + {ok: false, error: 'vault_readonly'} -> degraded; apply locally + toast
+  saveContragentApi(slug, draft)
     .then(res => {
-      if (res && res.ok === false) throw new Error(res.error || 'save failed');
-      // success
+      if (!res || res.ok === false) {
+        const err = (res && res.error) || 'save failed';
+        if (err === 'vault_readonly') {
+          applyFlatToContragent(c, draft);
+          state.editingContragent = false;
+          state.editDraft = null;
+          state.editErrors = null;
+          state.editSaving = false;
+          render();
+          window.scrollTo(0, 0);
+          toast('Сохранено локально (vault read-only — нужно настроить запись)', 'success');
+          return;
+        }
+        throw new Error(err);
+      }
       applyFlatToContragent(c, draft);
       state.editingContragent = false;
       state.editDraft = null;
@@ -1978,7 +2171,7 @@ function saveContragentEdit(slug, c) {
       state.editSaving = false;
       render();
       window.scrollTo(0, 0);
-      toast('Карточка обновлена', 'success');
+      toast(res.git_push === 'ok' ? 'Карточка обновлена и запушена' : 'Карточка обновлена', 'success');
     })
     .catch((err) => {
       state.editSaving = false;
@@ -2176,6 +2369,9 @@ function initTheme() {
 
 initTheme();
 render();
+
+// Pull live data; re-render once when ready. On failure -> MOCK_DATA stays + one-shot toast.
+loadLiveData().then(() => { try { render(); } catch (e) { /* ignore */ } });
 </script>
 </body>
 </html>
