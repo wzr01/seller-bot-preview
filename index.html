@@ -583,6 +583,82 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 }
 .composer textarea:focus { border-color: var(--accent); }
 
+/* === Edit-mode inputs (contragent edit screen) === */
+.edit-field { display: block; margin-bottom: 14px; }
+.edit-field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--hint);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.edit-field-label .req { color: var(--c-danger); margin-left: 2px; }
+.edit-input, .edit-textarea {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.edit-input { height: 42px; }
+.edit-textarea { min-height: 72px; resize: vertical; line-height: 1.45; }
+.edit-input:focus, .edit-textarea:focus { border-color: var(--accent); }
+.edit-input.invalid, .edit-textarea.invalid { border-color: var(--c-danger); }
+.edit-hint { font-size: 11px; color: var(--hint); margin-top: 4px; }
+.edit-hint.error { color: var(--c-danger); }
+
+/* Edit-mode footer: save (primary green) + cancel (secondary), side-by-side, replaces single MainButton */
+.edit-action-bar {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(12px + var(--safe-bottom));
+  width: calc(100% - 32px);
+  max-width: 388px;
+  display: flex;
+  gap: 8px;
+  z-index: 50;
+}
+.edit-action-bar .save-btn {
+  flex: 1;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--c-success);
+  color: #FFFFFF;
+  font-size: 16px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 8px 24px rgba(46,201,115,0.35);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+.edit-action-bar .save-btn:active { transform: scale(0.98); }
+.edit-action-bar .save-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.edit-action-bar .cancel-btn {
+  width: 110px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 15px; font-weight: 500;
+}
+.edit-action-bar .cancel-btn:active { opacity: 0.7; }
+
+/* Pencil-edit button in topbar */
+.edit-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface-2);
+  display: grid; place-items: center;
+  color: var(--accent);
+  margin-right: 6px;
+}
+.edit-btn:active { opacity: 0.7; }
+.topbar-actions { display: inline-flex; align-items: center; gap: 0; }
+
 .voice-recorded {
   display: flex; align-items: center; gap: 12px;
   padding: 14px;
@@ -1058,6 +1134,9 @@ const state = {
   modeFilter: 'all',
   composerMode: 'voice', // voice | text | recorded
   composerText: '',
+  editingContragent: false, // true when contragent-detail is in edit mode
+  editDraft: null,          // {primary_name, tg_username, location, specialization, schedule, tariffs, agreements, notes}
+  editSaving: false,        // true while POST in flight
   themeMode: (function () {
     try {
       const saved = localStorage.getItem('themeMode');
@@ -1075,6 +1154,9 @@ function navigate(screen, params = {}, replace = false) {
   state.params = params;
   state.composerMode = 'voice';
   state.composerText = '';
+  state.editingContragent = false;
+  state.editDraft = null;
+  state.editSaving = false;
   render();
   window.scrollTo(0, 0);
 
@@ -1099,6 +1181,9 @@ function back() {
   state.params = prev.params;
   state.composerMode = 'voice';
   state.composerText = '';
+  state.editingContragent = false;
+  state.editDraft = null;
+  state.editSaving = false;
   render();
   window.scrollTo(0, 0);
   if (window.Telegram?.WebApp?.BackButton) {
@@ -1144,6 +1229,9 @@ function arrowRightSVG() {
 }
 function backSVG() {
   return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function pencilSVG() {
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10.5-10.5a2.121 2.121 0 0 0-3-3L5 17v3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
 /* ============================================================
@@ -1572,7 +1660,18 @@ function renderContragentDetail() {
   const slug = state.params.slug;
   const c = MOCK_DATA.contragent[slug] || MOCK_DATA.contragent['ff-alice']; // fallback for demo
 
-  app.appendChild(topbar('Контрагент', { menu: true }));
+  if (state.editingContragent) return renderContragentEdit(app, slug, c);
+
+  app.appendChild(topbar('Контрагент', {
+    menu: true,
+    edit: true,
+    onEdit: () => {
+      state.editingContragent = true;
+      state.editDraft = contragentToFlat(c);
+      render();
+      window.scrollTo(0, 0);
+    }
+  }));
 
   // Hero
   app.appendChild(h('div', { class: 'contragent-hero' }, [
@@ -1693,18 +1792,225 @@ function contactRow(icon, text, onClick) {
 }
 
 /* ============================================================
+   SCREEN: CONTRAGENT-DETAIL — EDIT MODE
+============================================================ */
+
+// Map view-mode contragent object to flat fields used by the edit form
+// (matches POST /webhook/miniapp/contragent/{slug} body schema agreed with builder).
+function contragentToFlat(c) {
+  // If a flat field was previously saved on `c` (after a prior save), prefer it.
+  // Otherwise synthesize from the existing structured mock.
+  const agreementsText = (typeof c.agreements_text === 'string')
+    ? c.agreements_text
+    : (Array.isArray(c.agreements)
+        ? c.agreements.map(a => (a.date ? (a.date + ' — ') : '') + (a.text || '')).join('\n')
+        : '');
+  const notesText = (typeof c.notes === 'string')
+    ? c.notes
+    : (Array.isArray(c.style) ? c.style.join('\n') : '');
+  return {
+    primary_name: c.name || '',
+    tg_username: (c.contacts && c.contacts.tg) || c.tg_username || '',
+    location: c.location || '',
+    specialization: c.specialization || '',
+    schedule: c.schedule || '',
+    tariffs: c.tariffs || '',
+    agreements: agreementsText,
+    notes: notesText
+  };
+}
+
+// Apply (in-place) saved flat fields back into the structured mock object
+// so the view-mode renderer reflects the changes immediately.
+function applyFlatToContragent(c, fields) {
+  if (typeof fields.primary_name === 'string') c.name = fields.primary_name;
+  if (typeof fields.location === 'string') c.location = fields.location;
+  if (typeof fields.specialization === 'string') c.specialization = fields.specialization;
+  if (typeof fields.tg_username === 'string') {
+    c.contacts = c.contacts || {};
+    c.contacts.tg = fields.tg_username;
+    c.tg_username = fields.tg_username;
+  }
+  // Free-form fields without a matching structured equivalent — store as-is.
+  if (typeof fields.schedule === 'string') c.schedule = fields.schedule;
+  if (typeof fields.tariffs === 'string') c.tariffs = fields.tariffs;
+  if (typeof fields.agreements === 'string') c.agreements_text = fields.agreements;
+  if (typeof fields.notes === 'string') c.notes = fields.notes;
+  // Bump updated_at so the footer shows fresh time.
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  c.updated_at = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function editFieldText(label, key, opts = {}) {
+  const required = !!opts.required;
+  const placeholder = opts.placeholder || '';
+  const draft = state.editDraft || {};
+  const errorMsg = (state.editErrors && state.editErrors[key]) || '';
+  const input = h('input', {
+    type: 'text',
+    class: 'edit-input' + (errorMsg ? ' invalid' : ''),
+    value: draft[key] || '',
+    placeholder,
+    onInput: (e) => {
+      state.editDraft[key] = e.target.value;
+      // clear inline error on keystroke
+      if (state.editErrors && state.editErrors[key]) {
+        delete state.editErrors[key];
+        const hint = e.target.parentElement.querySelector('.edit-hint.error');
+        if (hint) hint.remove();
+        e.target.classList.remove('invalid');
+      }
+    }
+  }, []);
+  const children = [
+    h('label', { class: 'edit-field-label' }, [label, required ? h('span', { class: 'req' }, ['*']) : null].filter(Boolean)),
+    input
+  ];
+  if (errorMsg) children.push(h('div', { class: 'edit-hint error' }, [errorMsg]));
+  else if (opts.hint) children.push(h('div', { class: 'edit-hint' }, [opts.hint]));
+  return h('div', { class: 'edit-field' }, children);
+}
+
+function editFieldArea(label, key, opts = {}) {
+  const placeholder = opts.placeholder || '';
+  const draft = state.editDraft || {};
+  const errorMsg = (state.editErrors && state.editErrors[key]) || '';
+  const ta = h('textarea', {
+    class: 'edit-textarea' + (errorMsg ? ' invalid' : ''),
+    placeholder,
+    rows: opts.rows || 3,
+    onInput: (e) => { state.editDraft[key] = e.target.value; }
+  }, []);
+  ta.value = draft[key] || '';
+  const children = [
+    h('label', { class: 'edit-field-label' }, [label]),
+    ta
+  ];
+  if (errorMsg) children.push(h('div', { class: 'edit-hint error' }, [errorMsg]));
+  else if (opts.hint) children.push(h('div', { class: 'edit-hint' }, [opts.hint]));
+  return h('div', { class: 'edit-field' }, children);
+}
+
+function validateContragentDraft(d) {
+  const errors = {};
+  if (!d.primary_name || !d.primary_name.trim()) {
+    errors.primary_name = 'Имя обязательно';
+  }
+  if (d.tg_username && d.tg_username.trim() && !d.tg_username.trim().startsWith('@')) {
+    errors.tg_username = 'Должен начинаться с @ или быть пустым';
+  }
+  return errors;
+}
+
+function renderContragentEdit(app, slug, c) {
+  app.appendChild(topbar('Редактирование', { menu: false }));
+
+  // Header hint
+  app.appendChild(h('div', { class: 'empty', style: 'padding: 8px 0 14px;' }, [
+    h('div', { class: 'sub' }, ['Изменения сохраняются на сервер. Поля с * — обязательные.'])
+  ]));
+
+  app.appendChild(h('section', { class: 'section' }, [
+    editFieldText('Имя ФФ', 'primary_name', { required: true, placeholder: 'ФФ Alice' }),
+    editFieldText('Telegram-username', 'tg_username', { placeholder: '@ff_alice', hint: 'Начинается с @ или пусто' }),
+    editFieldText('Локация', 'location', { placeholder: 'Электросталь, МО' }),
+    editFieldArea('Специализация', 'specialization', { rows: 2, placeholder: 'одежда / средние партии (50–500 шт)' }),
+    editFieldText('Окна приёмки', 'schedule', { placeholder: 'пн-пт 11-13' }),
+    editFieldArea('Тарифы', 'tariffs', { rows: 3, placeholder: 'приёмка 35 ₽/шт, маркировка 15 ₽/шт' }),
+    editFieldArea('Договорённости', 'agreements', { rows: 5, placeholder: 'Многострочный текст: даты + договорённости' }),
+    editFieldArea('Особенности', 'notes', { rows: 4, placeholder: 'Стиль коммуникации, привычки, оговорки' })
+  ]));
+
+  // Spacer so save bar doesn't cover last field
+  app.appendChild(h('div', { style: 'height: 96px;' }, []));
+
+  // Save / Cancel bar (replaces single MainButton in edit mode)
+  const saveAttrs = {
+    class: 'save-btn',
+    onClick: () => { if (!state.editSaving) saveContragentEdit(slug, c); }
+  };
+  if (state.editSaving) saveAttrs.disabled = 'disabled';
+  const saveBtn = h('button', saveAttrs, [state.editSaving ? 'Сохраняю...' : 'Сохранить']);
+  const cancelBtn = h('button', {
+    class: 'cancel-btn',
+    onClick: () => {
+      state.editingContragent = false;
+      state.editDraft = null;
+      state.editErrors = null;
+      render();
+      window.scrollTo(0, 0);
+    }
+  }, ['Отменить']);
+  app.appendChild(h('div', { class: 'edit-action-bar' }, [cancelBtn, saveBtn]));
+}
+
+function saveContragentEdit(slug, c) {
+  const draft = state.editDraft || {};
+  const errors = validateContragentDraft(draft);
+  state.editErrors = errors;
+  if (Object.keys(errors).length > 0) {
+    render();
+    window.scrollTo(0, 0);
+    toast('Проверь поля: ' + Object.values(errors).join('; '), 'error');
+    return;
+  }
+  state.editSaving = true;
+  render();
+
+  // POST contract (agreed with builder):
+  //   POST /webhook/miniapp/contragent/{slug}  body = flat fields
+  //   200 -> {ok: true, updated_at: ...}
+  //   error -> {ok: false, error: ...}
+  fetch('/webhook/miniapp/contragent/' + encodeURIComponent(slug), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft)
+  })
+    .then(r => r.json().catch(() => ({ ok: r.ok })))
+    .then(res => {
+      if (res && res.ok === false) throw new Error(res.error || 'save failed');
+      // success
+      applyFlatToContragent(c, draft);
+      state.editingContragent = false;
+      state.editDraft = null;
+      state.editErrors = null;
+      state.editSaving = false;
+      render();
+      window.scrollTo(0, 0);
+      toast('Карточка обновлена', 'success');
+    })
+    .catch((err) => {
+      state.editSaving = false;
+      render();
+      toast('Сохранить не удалось', 'error');
+      console.warn('[contragent save] failed:', err);
+    });
+}
+
+/* ============================================================
    COMMON COMPONENTS
 ============================================================ */
 function topbar(title, opts = {}) {
+  const rightSlot = (opts.edit || opts.menu)
+    ? h('div', { class: 'topbar-actions' }, [
+        opts.edit
+          ? h('button', { class: 'edit-btn', title: 'Редактировать', onClick: opts.onEdit || (() => {}) }, [
+              h('span', { html: pencilSVG() }, [])
+            ])
+          : null,
+        opts.menu
+          ? h('button', { class: 'menu-btn', onClick: () => toast('Меню (mock): открыть в TG, скопировать ID, снять без ответа') }, ['⋯'])
+          : null
+      ].filter(Boolean))
+    : h('div', { style: 'width: 32px;' }, []);
   return h('div', { class: 'topbar', style: 'position: relative;' }, [
     h('button', { class: 'back-btn', onClick: () => back() }, [
       h('span', { html: backSVG() }, []),
       h('span', {}, ['Назад'])
     ]),
     h('div', { class: 'topbar-title' }, [title]),
-    opts.menu
-      ? h('button', { class: 'menu-btn', onClick: () => toast('Меню (mock): открыть в TG, скопировать ID, снять без ответа') }, ['⋯'])
-      : h('div', { style: 'width: 32px;' }, [])
+    rightSlot
   ]);
 }
 
