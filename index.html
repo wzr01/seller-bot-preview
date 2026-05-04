@@ -827,12 +827,12 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .screen.active { display: block; animation: fadeIn 200ms ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-/* Toast — sits above MainButton (which is at bottom: 12px + height 50px = 62px from bottom).
-   We pad 50px more to leave a clear visual gap (~30px) between toast and button. */
+/* Toast — sits well above MainButton (12px+50px=62px from bottom).
+   144px gives ~80px clear gap to definitely avoid visual overlap on any device incl. TG WebApp. */
 .toast {
   position: fixed;
   left: 50%; transform: translate(-50%, 80px);
-  bottom: calc(112px + var(--safe-bottom));
+  bottom: calc(144px + var(--safe-bottom));
   background: var(--surface-2);
   color: var(--text);
   padding: 10px 16px;
@@ -1491,7 +1491,7 @@ function actionCard(a) {
     class: 'action-card',
     style: 'background: ' + GRAD_MAP[a.grad],
     onClick: () => {
-      if (a.id === 'metrics' || a.id === 'contragents') {
+      if (a.id === 'metrics') {
         toast('Раздел в разработке (mock)');
       } else {
         navigate(a.screen);
@@ -2234,9 +2234,53 @@ function render() {
   if (screen === 'escalations-list') return renderMain(); // alias for now
   if (screen === 'escalation-detail') return renderEscalationDetail();
   if (screen === 'chats-list') return renderChatsList();
+  if (screen === 'contragents-list') return renderContragentsList();
   if (screen === 'contragent-detail') return renderContragentDetail();
   // default
   renderMain();
+}
+
+function renderContragentsList() {
+  const app = $('app');
+  app.innerHTML = '';
+  // Source: live API data populated at boot, with mock fallback.
+  const items = (MOCK_DATA._api_contragents && MOCK_DATA._api_contragents.length)
+    ? MOCK_DATA._api_contragents
+    : Object.values(MOCK_DATA.contragent || {}).map(c => ({
+        slug: c.slug,
+        primary_name: c.primary_name || c.name || c.slug,
+        location: c.location || '',
+        tag: c.category === 'fulfillment' ? 'ФФ' : (c.tag || '')
+      }));
+
+  app.appendChild(topbar('Контрагенты (' + items.length + ')'));
+
+  if (items.length === 0) {
+    app.appendChild(h('div', { class: 'empty' }, [
+      h('div', { class: 'icon' }, ['👥']),
+      h('div', { class: 'title' }, ['Карточек ещё нет']),
+      h('div', { class: 'sub' }, ['Добавь первого контрагента в vault.'])
+    ]));
+    return;
+  }
+
+  for (const c of items) {
+    const initial = (c.primary_name || c.slug || '?')[0].toUpperCase();
+    const card = h('button', {
+      class: 'chat-card',
+      onClick: () => navigate('contragent-detail', { slug: c.slug })
+    }, [
+      h('div', { class: 'avatar', style: 'width:42px;height:42px;font-size:16px;' }, [initial]),
+      h('div', { class: 'chat-info', style: 'flex:1;min-width:0;' }, [
+        h('div', { class: 'chat-title' }, [c.primary_name || c.slug]),
+        h('div', { class: 'chat-meta' }, [
+          (c.tag ? c.tag + ' · ' : '') + (c.location || '—')
+        ])
+      ])
+    ]);
+    card.insertAdjacentHTML('beforeend', arrowRightSVG());
+    app.appendChild(card);
+  }
 }
 
 /* ============================================================
