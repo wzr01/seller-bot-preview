@@ -889,7 +889,7 @@ const MOCK_DATA = {
     { id: 'escalations', icon: '⚠', title: 'Эскалации', sub: '3 открытых', grad: 'orange', screen: 'escalations-list' },
     { id: 'chats', icon: '💬', title: 'Чаты', sub: '12 активных', grad: 'purple', screen: 'chats-list' },
     { id: 'contragents', icon: '👥', title: 'Контрагенты', sub: '7 ФФ + поставщики', grad: 'teal', screen: 'contragents-list' },
-    { id: 'metrics', icon: '📊', title: 'Метрики недели', sub: 'Сводка пилота', grad: 'pink', screen: 'metrics' }
+    { id: 'integrations', icon: '🔌', title: 'Подключения', sub: 'WB, Честный знак, банки, аналитика', grad: 'pink', screen: 'integrations' }
   ],
   escalations: [
     {
@@ -1516,11 +1516,7 @@ function actionCard(a) {
     class: 'action-card',
     style: 'background: ' + GRAD_MAP[a.grad],
     onClick: () => {
-      if (a.id === 'metrics') {
-        toast('Раздел в разработке (mock)');
-      } else {
-        navigate(a.screen);
-      }
+      navigate(a.screen);
     }
   }, [
     h('div', { class: 'action-icon' }, [a.icon]),
@@ -2261,8 +2257,180 @@ function render() {
   if (screen === 'chats-list') return renderChatsList();
   if (screen === 'contragents-list') return renderContragentsList();
   if (screen === 'contragent-detail') return renderContragentDetail();
+  if (screen === 'contragent-new') return renderContragentNew();
+  if (screen === 'integrations') return renderIntegrations();
   // default
   renderMain();
+}
+
+// Russian → ASCII kebab-case slug. Bot uses slug for vault filename.
+function transliterateSlug(s) {
+  if (!s) return '';
+  const map = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'i','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'iu','я':'ia'};
+  return String(s).toLowerCase().split('').map(c => map[c] !== undefined ? map[c] : c).join('')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+// Integrations screen — список сервисов которые селлер может подключить
+const INTEGRATIONS = [
+  { id: 'wb_seller', icon: '🟣', title: 'Wildberries Seller', sub: 'Кабинет селлера: остатки, поставки, заказы', status: 'not_connected' },
+  { id: 'wb_client', icon: '🟣', title: 'Wildberries Client', sub: 'Карточки товаров, цены, рейтинги, отзывы', status: 'not_connected' },
+  { id: 'chestny_znak', icon: '✅', title: 'Честный знак', sub: 'КИЗ, маркировка, статусы товара', status: 'not_connected' },
+  { id: 'bitrix24', icon: '🟦', title: 'Bitrix24 CRM', sub: 'Контакты, сделки, задачи', status: 'not_connected' },
+  { id: 'sber_biz', icon: '🟢', title: 'Сбер Бизнес', sub: 'Счёт, выписки, платежи', status: 'not_connected' },
+  { id: 'tinkoff_biz', icon: '💛', title: 'Тинькофф Бизнес', sub: 'Счёт, выписки, эквайринг', status: 'not_connected' },
+  { id: 'vtb_biz', icon: '🟦', title: 'ВТБ Бизнес-онлайн', sub: 'Счёт, выписки', status: 'not_connected' },
+  { id: 'mpstats', icon: '📊', title: 'MPSTATS', sub: 'Аналитика конкурентов на WB/OZ', status: 'not_connected' },
+  { id: 'moysklad', icon: '📦', title: 'МойСклад', sub: 'Товароучёт, остатки в магазинах', status: 'not_connected' },
+  { id: '1c', icon: '🟧', title: '1С Бухгалтерия', sub: 'Товары, контрагенты, операции', status: 'not_connected' }
+];
+
+function renderIntegrations() {
+  const app = $('app');
+  app.innerHTML = '';
+  app.appendChild(topbar('Подключения'));
+
+  app.appendChild(h('div', { class: 'empty', style: 'padding: 8px 0 14px;' }, [
+    h('div', { class: 'sub' }, ['Подключи сервисы — бот будет использовать их данные при ответах контрагентам и в эскалациях.'])
+  ]));
+
+  const counts = INTEGRATIONS.reduce((acc, i) => {
+    acc[i.status] = (acc[i.status] || 0) + 1;
+    return acc;
+  }, {});
+  app.appendChild(h('div', { class: 'chips-row', style: 'margin-bottom: 12px;' }, [
+    h('span', { class: 'chip active' }, ['Все (' + INTEGRATIONS.length + ')']),
+    h('span', { class: 'chip' }, ['Подключено (' + (counts.connected || 0) + ')']),
+    h('span', { class: 'chip' }, ['Не настроено (' + (counts.not_connected || 0) + ')'])
+  ]));
+
+  for (const i of INTEGRATIONS) {
+    const statusLabel = {
+      connected: 'Подключено',
+      not_connected: 'Не настроено',
+      error: 'Ошибка'
+    }[i.status] || '—';
+    const statusClass = {
+      connected: 'success',
+      not_connected: 'muted',
+      error: 'danger'
+    }[i.status] || '';
+
+    const card = h('button', {
+      class: 'chat-card',
+      onClick: () => {
+        toast('Подключение ' + i.title + ' — UI в разработке. Скажи что нужно сначала.');
+      }
+    }, [
+      h('div', { class: 'avatar', style: 'width:42px;height:42px;font-size:18px;' }, [i.icon]),
+      h('div', { class: 'chat-info', style: 'flex:1;min-width:0;' }, [
+        h('div', { class: 'chat-title' }, [i.title]),
+        h('div', { class: 'chat-meta' }, [i.sub])
+      ]),
+      h('span', { class: 'chip ' + statusClass, style: 'margin-right:6px;font-size:11px;' }, [statusLabel])
+    ]);
+    card.insertAdjacentHTML('beforeend', arrowRightSVG());
+    app.appendChild(card);
+  }
+}
+
+function renderContragentNew() {
+  const app = $('app');
+  app.innerHTML = '';
+  app.appendChild(topbar('Новый контрагент', { menu: false }));
+
+  app.appendChild(h('div', { class: 'empty', style: 'padding: 8px 0 14px;' }, [
+    h('div', { class: 'sub' }, ['Карточка будет создана в vault и запушена в git. Поля с * — обязательные.'])
+  ]));
+
+  // Slug preview (auto-derived from primary_name unless user edits manually)
+  const draft = state.editDraft || {};
+  const autoSlug = transliterateSlug(draft.primary_name || '');
+  const effectiveSlug = (draft._slug_manual && draft._slug_manual.trim()) || autoSlug;
+
+  app.appendChild(h('section', { class: 'section' }, [
+    editFieldText('Имя ФФ', 'primary_name', { required: true, placeholder: 'ФФ Bob (Бобр-Склад)' }),
+    h('div', { class: 'edit-field' }, [
+      h('label', {}, ['Slug в vault']),
+      h('input', {
+        type: 'text',
+        class: 'edit-input',
+        value: effectiveSlug,
+        placeholder: 'ff-bob (генерится из имени)',
+        onInput: (e) => { state.editDraft._slug_manual = e.target.value; }
+      }),
+      h('div', { class: 'edit-hint' }, ['Имя файла в `02_KNOWLEDGE/contragents/`. Генерируется автоматически — можно поправить.'])
+    ]),
+    editFieldText('Telegram-username', 'tg_username', { placeholder: '@ff_bob', hint: 'Начинается с @ или пусто' }),
+    editFieldText('Локация', 'location', { placeholder: 'Подольск, МО' }),
+    editFieldArea('Специализация', 'specialization', { rows: 2, placeholder: 'одежда + аксессуары' }),
+    editFieldText('Окна приёмки', 'schedule', { placeholder: 'пн-пт 11-13' }),
+    editFieldArea('Тарифы', 'tariffs', { rows: 3, placeholder: 'приёмка 32 ₽/шт, маркировка 14 ₽/шт' }),
+    editFieldArea('Договорённости', 'agreements', { rows: 4, placeholder: 'Стартовые условия, дата начала работы' }),
+    editFieldArea('Особенности', 'notes', { rows: 3, placeholder: 'Стиль коммуникации, оговорки' })
+  ]));
+
+  app.appendChild(h('div', { style: 'height: 96px;' }, []));
+
+  const saveAttrs = {
+    class: 'save-btn',
+    onClick: () => { if (!state.editSaving) saveContragentNew(); }
+  };
+  if (state.editSaving) saveAttrs.disabled = 'disabled';
+  const saveBtn = h('button', saveAttrs, [state.editSaving ? 'Создаю...' : 'Создать карточку']);
+  const cancelBtn = h('button', {
+    class: 'cancel-btn',
+    onClick: () => { state.editDraft = null; state.editErrors = null; back(); }
+  }, ['Отменить']);
+  app.appendChild(h('div', { class: 'edit-action-bar' }, [cancelBtn, saveBtn]));
+}
+
+function saveContragentNew() {
+  const draft = state.editDraft || {};
+  const errors = validateContragentDraft(draft);
+  // Slug must be valid for new
+  const slug = (draft._slug_manual && draft._slug_manual.trim()) || transliterateSlug(draft.primary_name || '');
+  if (!slug || !/^[a-z0-9_-]+$/.test(slug)) errors._slug = 'Slug пустой или содержит недопустимые символы (только латиница, цифры, -)';
+  state.editErrors = errors;
+  if (Object.keys(errors).length > 0) {
+    render();
+    window.scrollTo(0, 0);
+    toast('Проверь поля: ' + Object.values(errors).join('; '), 'error');
+    return;
+  }
+  state.editSaving = true;
+  render();
+
+  saveContragentApi(slug, draft)
+    .then(res => {
+      if (!res || res.ok === false) {
+        const err = (res && res.error) || 'create failed';
+        if (err === 'vault_readonly') {
+          toast('Нельзя создать: vault read-only на сервере', 'error');
+        } else {
+          toast('Создать не удалось: ' + err, 'error');
+        }
+        state.editSaving = false;
+        render();
+        return;
+      }
+      // Success: clear cache for this slug (forces re-fetch), navigate to detail
+      delete MOCK_DATA.contragent[slug];
+      // Drop _api_contragents cache so list rebuilds with new entry
+      delete MOCK_DATA._api_contragents;
+      state.editDraft = null;
+      state.editErrors = null;
+      state.editSaving = false;
+      toast(res.git_push === 'ok' ? 'Карточка создана и запушена' : 'Карточка создана', 'success');
+      // Reload list + open new card
+      if (typeof loadLiveData === 'function') loadLiveData();
+      navigate('contragent-detail', { slug });
+    })
+    .catch(err => {
+      state.editSaving = false;
+      render();
+      toast('Создать не удалось', 'error');
+    });
 }
 
 function renderContragentsList() {
@@ -2280,12 +2448,19 @@ function renderContragentsList() {
 
   app.appendChild(topbar('Контрагенты (' + items.length + ')'));
 
-  // "+ Добавить" button at top
+  // "+ Добавить" button at top — opens blank create form
   const addBtn = h('button', {
     class: 'main-button secondary',
     style: 'position: static; transform: none; margin: 8px 0 12px; width: 100%; max-width: none; height: 44px; font-size: 14px; box-shadow: none;',
     onClick: () => {
-      toast('Добавление пока недоступно — карточку создаём в vault через Obsidian. UI в разработке.', '');
+      state.editDraft = {
+        primary_name: '', tg_username: '', location: '',
+        specialization: '', schedule: '', tariffs: '',
+        agreements: '', notes: '', _slug_manual: ''
+      };
+      state.editErrors = null;
+      state.editSaving = false;
+      navigate('contragent-new');
     }
   }, ['+ Добавить контрагента']);
   app.appendChild(addBtn);
