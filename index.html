@@ -2259,6 +2259,7 @@ function render() {
   if (screen === 'contragent-detail') return renderContragentDetail();
   if (screen === 'contragent-new') return renderContragentNew();
   if (screen === 'integrations') return renderIntegrations();
+  if (screen === 'integration-detail') return renderIntegrationDetail();
   // default
   renderMain();
 }
@@ -2316,22 +2317,152 @@ function renderIntegrations() {
       error: 'danger'
     }[i.status] || '';
 
+    // Same-size cards: fixed min-height, single-line meta with ellipsis.
     const card = h('button', {
       class: 'chat-card',
-      onClick: () => {
-        toast('Подключение ' + i.title + ' — UI в разработке. Скажи что нужно сначала.');
-      }
+      style: 'min-height: 68px; align-items: center;',
+      onClick: () => navigate('integration-detail', { id: i.id })
     }, [
-      h('div', { class: 'avatar', style: 'width:42px;height:42px;font-size:18px;' }, [i.icon]),
+      h('div', { class: 'avatar', style: 'width:42px;height:42px;font-size:18px;flex-shrink:0;' }, [i.icon]),
       h('div', { class: 'chat-info', style: 'flex:1;min-width:0;' }, [
         h('div', { class: 'chat-title' }, [i.title]),
-        h('div', { class: 'chat-meta' }, [i.sub])
+        h('div', { class: 'chat-meta', style: 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' }, [i.sub])
       ]),
-      h('span', { class: 'chip ' + statusClass, style: 'margin-right:6px;font-size:11px;' }, [statusLabel])
+      h('span', { class: 'chip ' + statusClass, style: 'margin-right:6px;font-size:11px;flex-shrink:0;' }, [statusLabel])
     ]);
     card.insertAdjacentHTML('beforeend', arrowRightSVG());
     app.appendChild(card);
   }
+}
+
+// Integration detail / connect-form screen.
+function renderIntegrationDetail() {
+  const app = $('app');
+  app.innerHTML = '';
+  const id = state.params.id;
+  const integration = INTEGRATIONS.find(x => x.id === id);
+  if (!integration) {
+    app.appendChild(topbar('Подключение'));
+    app.appendChild(h('div', { class: 'empty' }, [
+      h('div', { class: 'icon' }, ['❓']),
+      h('div', { class: 'title' }, ['Сервис не найден'])
+    ]));
+    return;
+  }
+
+  app.appendChild(topbar(integration.title));
+
+  // Hero
+  app.appendChild(h('div', { class: 'contragent-hero' }, [
+    h('div', { class: 'avatar', style: 'width:64px;height:64px;font-size:28px;background:var(--surface-2);' }, [integration.icon]),
+    h('div', { class: 'info' }, [
+      h('div', { class: 'name', style: 'font-size:18px;' }, [integration.title]),
+      h('div', { class: 'meta' }, [integration.sub])
+    ])
+  ]));
+
+  // Per-integration form rendering
+  if (id === 'wb_seller') return renderWbSellerForm(app, integration);
+  if (id === 'wb_client') return renderWbClientForm(app, integration);
+
+  // Default: stub for not-yet-implemented integrations
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Скоро'])]),
+    h('div', { class: 'empty', style: 'padding: 12px 0;' }, [
+      h('div', { class: 'sub' }, ['Подключение этого сервиса в разработке. Пока работает: WB Seller (API), WB Client (Playwright).'])
+    ])
+  ]));
+}
+
+function renderWbSellerForm(app, integration) {
+  const draft = state.integrationDraft || {};
+
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Шаг 1. Получить API ключ'])]),
+    h('div', { class: 'empty', style: 'padding: 8px 0;' }, [
+      h('div', { class: 'sub' }, [
+        '1. Зайди в кабинет seller.wildberries.ru',
+        h('br'), '2. Настройки → Доступ к API',
+        h('br'), '3. Создай токен с правами Statistics, Marketplace, Content',
+        h('br'), '4. Скопируй и вставь сюда:'
+      ])
+    ])
+  ]));
+
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'edit-field' }, [
+      h('label', {}, ['API ключ']),
+      h('textarea', {
+        class: 'edit-input',
+        rows: '3',
+        placeholder: 'eyJhbGciOiJIUzI1NiIs...',
+        style: 'font-family: monospace; font-size: 11px; word-break: break-all;',
+        onInput: (e) => {
+          state.integrationDraft = { ...(state.integrationDraft || {}), api_key: e.target.value };
+        }
+      }, [draft.api_key || ''])
+    ])
+  ]));
+
+  app.appendChild(h('div', { style: 'height: 96px;' }, []));
+
+  const saveBtn = h('button', {
+    class: 'main-button',
+    onClick: () => connectIntegration('wb_seller', { api_key: (state.integrationDraft && state.integrationDraft.api_key) || '' })
+  }, [state.integrationConnecting ? 'Проверяю...' : 'Подключить']);
+  if (state.integrationConnecting) saveBtn.setAttribute('disabled', 'disabled');
+  app.appendChild(saveBtn);
+}
+
+function renderWbClientForm(app, integration) {
+  app.appendChild(h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [h('span', {}, ['Подключение через Playwright'])]),
+    h('div', { class: 'empty', style: 'padding: 8px 0;' }, [
+      h('div', { class: 'sub' }, [
+        'WB Client API нет — заходим браузером на Carwyn VPS, логинимся в твой клиентский кабинет, сохраняем сессию.',
+        h('br'), h('br'),
+        'Реализация: Playwright MCP сервис на VPS. На пилоте — на паузе, пока тестим WB Seller.'
+      ])
+    ])
+  ]));
+
+  const stub = h('button', {
+    class: 'main-button secondary',
+    onClick: () => toast('WB Client — следующий этап после WB Seller')
+  }, ['Скоро']);
+  app.appendChild(stub);
+}
+
+function connectIntegration(id, creds) {
+  if (!creds.api_key || creds.api_key.trim().length < 20) {
+    toast('Введи API ключ полностью (обычно 200+ символов)', 'error');
+    return;
+  }
+  state.integrationConnecting = true;
+  render();
+
+  apiFetch('/integration-connect?id=' + encodeURIComponent(id), {
+    method: 'POST',
+    body: JSON.stringify({ id, creds })
+  }).then(res => {
+    state.integrationConnecting = false;
+    if (!res.ok || !res.data || res.data.ok === false) {
+      const err = (res.data && res.data.error) || 'connect failed';
+      toast('Не удалось подключить: ' + err, 'error');
+      render();
+      return;
+    }
+    // Mark as connected in local UI state (until API exposes integrations list with status)
+    const i = INTEGRATIONS.find(x => x.id === id);
+    if (i) i.status = 'connected';
+    state.integrationDraft = null;
+    toast('Подключено! Бот начнёт синкать данные.', 'success');
+    navigate('integrations', {}, true);
+  }).catch(() => {
+    state.integrationConnecting = false;
+    toast('Не удалось подключить', 'error');
+    render();
+  });
 }
 
 function renderContragentNew() {
