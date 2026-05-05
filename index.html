@@ -3,25 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F1620" id="meta-theme-color">
+<meta name="theme-color" content="#0B1220" id="meta-theme-color">
 <title>SellerAssistantBot — Панель</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!--
+  Палитра построена по UI/UX Pro Max (nextlevelbuilder/ui-ux-pro-max-skill, MIT)
+  preset #101 «CRM & Client Management»: trust-blue #2563EB primary +
+  emerald #059669 accent. Тёмная — навигационный navy без чисто-серых.
+  Шрифт: Plus Jakarta Sans (preset #71 Enterprise SaaS Mobile).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 <style>
 :root {
-  /* === DARK THEME (default) === */
-  --bg: #0F1620;
-  --surface: #1A2332;
-  --surface-2: #232E3C;
-  --section-bg: #1C2733;
-  --text: #FFFFFF;
-  --text-2: #A8B7C7;
-  --hint: #708499;
-  --accent: #6AB3F3;
-  --button: #5288C1;
+  /* === DARK THEME (default) — навигационный navy для B2B SaaS === */
+  --bg: #0B1220;
+  --surface: #111A2E;
+  --surface-2: #1A2440;
+  --section-bg: #131D33;
+  --text: #F5F8FF;
+  --text-2: #A8B5CF;
+  --hint: #6F7E9C;
+  --accent: #60A5FA;
+  --button: #2563EB;
 
   /* Chrome / structure */
-  --app-bg-desktop: #07090E;
-  --divider: rgba(255,255,255,0.04);
+  --app-bg-desktop: #060912;
+  --divider: rgba(255,255,255,0.05);
   --input-bg: rgba(0,0,0,0.2);
   --input-border: rgba(255,255,255,0.06);
   --progress-track: rgba(255,255,255,0.06);
@@ -32,15 +42,15 @@
   --chip-active-text: #001428;
   --button-text: #FFFFFF;
   --bubble-trigger-bg: rgba(245,166,35,0.08);
-  --voice-btn-bg: rgba(82,136,193,0.12);
-  --voice-btn-bg-active: rgba(82,136,193,0.22);
-  --voice-btn-border: rgba(106,179,243,0.4);
-  --voice-recorded-bg: rgba(46,201,115,0.10);
+  --voice-btn-bg: rgba(37,99,235,0.14);
+  --voice-btn-bg-active: rgba(37,99,235,0.24);
+  --voice-btn-border: rgba(96,165,250,0.42);
+  --voice-recorded-bg: rgba(5,150,105,0.12);
 
   /* Status pill backgrounds (translucent on dark) */
-  --pill-running-bg: rgba(61,155,255,0.18);
+  --pill-running-bg: rgba(59,130,246,0.18);
   --pill-queued-bg: rgba(112,132,153,0.18);
-  --pill-success-bg: rgba(46,201,115,0.18);
+  --pill-success-bg: rgba(16,185,129,0.18);
   --pill-failed-bg: rgba(236,57,66,0.18);
   --pill-warn-bg: rgba(245,166,35,0.18);
   --pill-running-text: var(--c-info);
@@ -50,45 +60,47 @@
   --pill-warn-text: var(--c-warning);
 
   /* KPI delta colors */
-  --kpi-up-bg: rgba(46,201,115,0.16);
-  --kpi-up-text: #4DD893;
+  --kpi-up-bg: rgba(16,185,129,0.16);
+  --kpi-up-text: #34D399;
   --kpi-down-bg: rgba(236,57,66,0.16);
   --kpi-down-text: #FF6B73;
   --kpi-flat-bg: rgba(112,132,153,0.16);
 
   /* Chat-mode chips */
-  --chat-mode-auto-bg: rgba(46,201,115,0.18);
-  --chat-mode-auto-text: #4DD893;
+  --chat-mode-auto-bg: rgba(16,185,129,0.18);
+  --chat-mode-auto-text: #34D399;
   --chat-mode-silent-bg: rgba(112,132,153,0.20);
   --chat-mode-silent-text: var(--text-2);
   --chat-mode-paused-bg: rgba(245,166,35,0.18);
   --chat-mode-paused-text: var(--c-warning);
 
   /* Accent rgb (used for active chip backgrounds) */
-  --accent-soft-bg: rgba(106,179,243,0.08);
-  --button-shadow: 0 8px 24px rgba(82,136,193,0.4);
+  --accent-soft-bg: rgba(96,165,250,0.10);
+  --button-shadow: 0 10px 28px rgba(37,99,235,0.42);
   --danger-shadow: 0 8px 24px rgba(236,57,66,0.35);
   --toast-success-text: #001A0E;
 
-  --c-success: #2EC973;
+  --c-success: #10B981;
   --c-warning: #F5A623;
   --c-danger: #EC3942;
-  --c-info: #3D9BFF;
+  --c-info: #3B82F6;
 
-  --grad-orange: linear-gradient(135deg, #FF8A00 0%, #FF3D7F 100%);
-  --grad-purple: linear-gradient(135deg, #7B5CFF 0%, #3D9BFF 100%);
-  --grad-teal:   linear-gradient(135deg, #00C9A7 0%, #0FB1FF 100%);
-  --grad-pink:   linear-gradient(135deg, #FF5E9C 0%, #7B5CFF 100%);
-  --grad-blue:   linear-gradient(135deg, #3D9BFF 0%, #7B5CFF 100%);
-  --grad-amber:  linear-gradient(135deg, #F5A623 0%, #FF6B6B 100%);
+  /* B2B-сдержанные градиенты: trust-blue → indigo, emerald → teal,
+     сохраняем тёплый «warn» как смысловой акцент. */
+  --grad-orange: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
+  --grad-purple: linear-gradient(135deg, #4F46E5 0%, #2563EB 100%);
+  --grad-teal:   linear-gradient(135deg, #059669 0%, #0EA5E9 100%);
+  --grad-pink:   linear-gradient(135deg, #6366F1 0%, #EC4899 100%);
+  --grad-blue:   linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  --grad-amber:  linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
 
   --r-sm: 10px;
   --r-md: 14px;
   --r-lg: 16px;
   --r-xl: 24px;
 
-  --shadow-card: 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.18);
-  --shadow-pop: 0 12px 40px rgba(0,0,0,0.35);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.05), 0 10px 28px rgba(7,12,28,0.45);
+  --shadow-pop: 0 16px 48px rgba(7,12,28,0.55);
   --shadow-desktop: 0 0 60px rgba(0,0,0,0.6);
 
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -101,83 +113,91 @@
    тёмной: те же градиенты в action-картах, цветные status-чипы насыщеннее
    за счёт меньшей прозрачности и более глубоких базовых цветов. */
 [data-theme="light"] {
-  --bg: #F5F7FA;
+  /* Палитра UI/UX Pro Max #101 «CRM & Client Management»:
+     primary #2563EB trust blue + accent #059669 deal green,
+     bg #F8FAFC, fg #0F172A. Подходит для B2B SaaS селлер-инструментов. */
+  --bg: #F8FAFC;
   --surface: #FFFFFF;
-  --surface-2: #EEF1F5;
-  --section-bg: #F0F3F7;
-  --text: #0F1620;
-  --text-2: #5A6878;
-  --hint: #8895A5;
-  --accent: #2F7FD6;
-  --button: #2F7FD6;
+  --surface-2: #EEF2FA;
+  --section-bg: #F1F5FD;
+  --text: #0F172A;
+  --text-2: #475569;
+  --hint: #64748B;
+  --accent: #2563EB;
+  --button: #2563EB;
 
-  --app-bg-desktop: #E1E6EC;
-  --divider: rgba(15,22,32,0.06);
-  --input-bg: #F5F7FA;
-  --input-border: #E1E5EA;
-  --progress-track: rgba(15,22,32,0.06);
+  --app-bg-desktop: #E2E8F0;
+  --divider: rgba(15,23,42,0.06);
+  --input-bg: #F8FAFC;
+  --input-border: #E4ECFC;
+  --progress-track: rgba(15,23,42,0.06);
   --action-overlay: rgba(255,255,255,0.22);
   --action-icon-bg: rgba(255,255,255,0.25);
-  --overlay: rgba(15,22,32,0.45);
+  --overlay: rgba(15,23,42,0.45);
   --text-on-action: #FFFFFF;
   --chip-active-text: #FFFFFF;
   --button-text: #FFFFFF;
-  --bubble-trigger-bg: rgba(245,166,35,0.12);
-  --voice-btn-bg: rgba(47,127,214,0.08);
-  --voice-btn-bg-active: rgba(47,127,214,0.16);
-  --voice-btn-border: rgba(47,127,214,0.35);
-  --voice-recorded-bg: rgba(34,168,100,0.10);
+  --bubble-trigger-bg: rgba(245,158,11,0.12);
+  --voice-btn-bg: rgba(37,99,235,0.08);
+  --voice-btn-bg-active: rgba(37,99,235,0.16);
+  --voice-btn-border: rgba(37,99,235,0.35);
+  --voice-recorded-bg: rgba(5,150,105,0.10);
 
-  --pill-running-bg: rgba(61,155,255,0.14);
-  --pill-queued-bg: rgba(90,104,120,0.12);
-  --pill-success-bg: rgba(34,168,100,0.14);
-  --pill-failed-bg: rgba(214,51,65,0.12);
-  --pill-warn-bg: rgba(214,140,20,0.14);
-  --pill-running-text: #1E78D6;
-  --pill-queued-text: #5A6878;
-  --pill-success-text: #1A8C50;
-  --pill-failed-text: #C42030;
-  --pill-warn-text: #C47A12;
+  --pill-running-bg: rgba(37,99,235,0.12);
+  --pill-queued-bg: rgba(100,116,139,0.12);
+  --pill-success-bg: rgba(5,150,105,0.14);
+  --pill-failed-bg: rgba(220,38,38,0.12);
+  --pill-warn-bg: rgba(217,119,6,0.14);
+  --pill-running-text: #1D4ED8;
+  --pill-queued-text: #475569;
+  --pill-success-text: #047857;
+  --pill-failed-text: #B91C1C;
+  --pill-warn-text: #B45309;
 
-  --kpi-up-bg: rgba(34,168,100,0.14);
-  --kpi-up-text: #1A8C50;
-  --kpi-down-bg: rgba(214,51,65,0.12);
-  --kpi-down-text: #C42030;
-  --kpi-flat-bg: rgba(136,149,165,0.14);
+  --kpi-up-bg: rgba(5,150,105,0.14);
+  --kpi-up-text: #047857;
+  --kpi-down-bg: rgba(220,38,38,0.12);
+  --kpi-down-text: #B91C1C;
+  --kpi-flat-bg: rgba(100,116,139,0.14);
 
-  --chat-mode-auto-bg: rgba(34,168,100,0.14);
-  --chat-mode-auto-text: #1A8C50;
-  --chat-mode-silent-bg: rgba(136,149,165,0.18);
-  --chat-mode-silent-text: #5A6878;
-  --chat-mode-paused-bg: rgba(214,140,20,0.14);
-  --chat-mode-paused-text: #B5710F;
+  --chat-mode-auto-bg: rgba(5,150,105,0.14);
+  --chat-mode-auto-text: #047857;
+  --chat-mode-silent-bg: rgba(100,116,139,0.18);
+  --chat-mode-silent-text: #475569;
+  --chat-mode-paused-bg: rgba(217,119,6,0.14);
+  --chat-mode-paused-text: #B45309;
 
-  --accent-soft-bg: rgba(47,127,214,0.10);
-  --button-shadow: 0 6px 18px rgba(47,127,214,0.28);
-  --danger-shadow: 0 6px 18px rgba(214,51,65,0.25);
+  --accent-soft-bg: rgba(37,99,235,0.10);
+  --button-shadow: 0 8px 22px rgba(37,99,235,0.28);
+  --danger-shadow: 0 6px 18px rgba(220,38,38,0.25);
   --toast-success-text: #FFFFFF;
 
-  /* Mute pure-white sheen on light bg, чтобы action-карточки не пересвечивались */
-  --c-info: #1E78D6;
-  --c-success: #22A864;
-  --c-warning: #D68C14;
-  --c-danger: #D63341;
+  /* Семантические — синхронизированы с trust/deal палитрой */
+  --c-info: #1D4ED8;
+  --c-success: #047857;
+  --c-warning: #B45309;
+  --c-danger: #B91C1C;
 
-  /* Карточки на белом — тонкая тень с тёплым подтоном вместо чёрной */
-  --shadow-card: 0 1px 2px rgba(15,22,32,0.04), 0 4px 14px rgba(15,22,32,0.06);
-  --shadow-pop: 0 12px 36px rgba(15,22,32,0.14);
-  --shadow-desktop: 0 0 40px rgba(15,22,32,0.10);
+  /* Карточки на белом — тонкая тень с холодным синим подтоном */
+  --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 6px 18px rgba(37,99,235,0.06);
+  --shadow-pop: 0 16px 40px rgba(15,23,42,0.14);
+  --shadow-desktop: 0 0 40px rgba(15,23,42,0.10);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; overflow-x: hidden; max-width: 100vw; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+  /* Plus Jakarta Sans — preset «Enterprise SaaS Mobile» из UI/UX Pro Max.
+     Если шрифт ещё не загрузился (slow TG WebApp / offline), падаем на
+     system stack без layout shift благодаря font-display: swap. */
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
   font-size: 15px;
-  line-height: 1.4;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: contain;
 }
 button { font: inherit; color: inherit; border: 0; background: transparent; cursor: pointer; }
@@ -872,6 +892,62 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
 .empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
 .empty .title { font-size: 16px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
 .empty .sub { font-size: 13px; color: var(--hint); }
+
+/* === UI/UX Pro Max micro-additions ===
+   Из чек-листа: focus-states (accessibility), reduced-motion, ровный
+   pressed-feedback на тач-целях. Не меняет структуру — только слой
+   состояний. */
+
+/* Visible focus rings для keyboard-нав. Не трогаем :focus без is-keyboard,
+   чтобы не показывать ring на мышь/тап (стандартная мобильная практика). */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Кнопки/кликабельные карточки — мягкая ring через box-shadow,
+   чтобы скруглённые углы не «срезали» outline. */
+button:focus-visible,
+a:focus-visible,
+.task-card:focus-visible,
+.action-card:focus-visible,
+.action-card-list:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-card),
+              0 0 0 2px var(--bg),
+              0 0 0 4px var(--accent);
+}
+
+/* Уважаем prefers-reduced-motion (UX guideline reduced-motion). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .action-card:active,
+  .task-card:active { transform: none; }
+}
+
+/* Чуть выразительнее «pressed» на task-card — короче + явнее.
+   Усиливает state-clarity без декоративности. */
+.task-card { transition: transform 120ms ease, box-shadow 200ms ease; }
+.task-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 2px 6px rgba(0,0,0,0.18);
+}
+
+/* Tabular-nums для KPI и денежных значений — выравнивает колонки цифр,
+   важная деталь для B2B-дашбордов (UX: data-readability). */
+.kpi-card .value,
+.kpi-delta,
+.task-card .meta,
+.contragent-amount,
+.balance-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
 </style>
 </head>
 <body>
@@ -2645,7 +2721,7 @@ function renderContragentsList() {
    Подписаны на 'themeChanged' (TG) и 'change' (matchMedia), но реагируем
    только когда themeMode === 'auto'.
 ============================================================ */
-const THEME_META_COLORS = { dark: '#0F1620', light: '#F5F7FA' };
+const THEME_META_COLORS = { dark: '#0B1220', light: '#F8FAFC' };
 const THEME_LABELS = { auto: 'авто', light: 'светлая', dark: 'тёмная' };
 const THEME_ICONS  = { auto: '🌓', light: '☀', dark: '🌙' };
 
