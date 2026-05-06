@@ -87,12 +87,12 @@
 
   /* B2B-сдержанные градиенты: trust-blue → indigo, emerald → teal,
      сохраняем тёплый «warn» как смысловой акцент. */
-  --grad-orange: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
-  --grad-purple: linear-gradient(135deg, #4F46E5 0%, #2563EB 100%);
-  --grad-teal:   linear-gradient(135deg, #059669 0%, #0EA5E9 100%);
-  --grad-pink:   linear-gradient(135deg, #6366F1 0%, #EC4899 100%);
-  --grad-blue:   linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
-  --grad-amber:  linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  --grad-orange: linear-gradient(135deg, #EA580C 0%, #B91C1C 100%);
+  --grad-purple: linear-gradient(135deg, #4338CA 0%, #1E40AF 100%);
+  --grad-teal:   linear-gradient(135deg, #047857 0%, #0369A1 100%);
+  --grad-pink:   linear-gradient(135deg, #4F46E5 0%, #BE185D 100%);
+  --grad-blue:   linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+  --grad-amber:  linear-gradient(135deg, #D97706 0%, #B91C1C 100%);
 
   --r-sm: 10px;
   --r-md: 14px;
@@ -351,8 +351,8 @@ button { font: inherit; color: inherit; border: 0; background: transparent; curs
   font-size: 20px;
   margin-bottom: auto;
 }
-.action-title { font-size: 15px; font-weight: 700; margin-top: 12px; line-height: 1.2; }
-.action-subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.action-title { font-size: 15px; font-weight: 700; margin-top: 12px; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+.action-subtitle { font-size: 12px; opacity: 0.92; margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.22); }
 .action-arrow {
   position: absolute; top: 16px; right: 14px;
   opacity: 0.7;
@@ -1647,6 +1647,45 @@ function recentCard(r) {
 }
 
 /* ============================================================
+   SCREEN: ESCALATIONS LIST (dedicated)
+============================================================ */
+function renderEscalationsList() {
+  const app = $('app');
+  app.innerHTML = '';
+
+  app.appendChild(topbar('Эскалации'));
+
+  const list = MOCK_DATA.escalations;
+
+  if (list.length === 0) {
+    app.appendChild(h('div', { class: 'empty', style: 'padding: 48px 16px;' }, [
+      h('div', { class: 'icon' }, ['✓']),
+      h('div', { class: 'title' }, ['Открытых эскалаций нет']),
+      h('div', { class: 'sub' }, ['Все вопросы закрыты'])
+    ]));
+    return;
+  }
+
+  const section = h('section', { class: 'section' }, [
+    h('div', { class: 'section-title' }, [
+      h('span', {}, ['Открытые']),
+      h('span', { class: 'right' }, [list.length + ' шт.'])
+    ]),
+    ...list.map(esc => escalationCard(esc))
+  ]);
+  app.appendChild(section);
+
+  // MainButton — only when there are open escalations
+  const mb = h('button', {
+    class: 'main-button',
+    onClick: () => navigate('escalation-detail', { id: list[0].id })
+  }, [
+    'Ответить на ' + list.length + ' затыка'
+  ]);
+  app.appendChild(mb);
+}
+
+/* ============================================================
    SCREEN: ESCALATION DETAIL
 ============================================================ */
 function renderEscalationDetail() {
@@ -2334,7 +2373,7 @@ function showConfirm(msg, onYes) {
 function render() {
   const screen = state.currentScreen;
   if (screen === 'main') return renderMain();
-  if (screen === 'escalations-list') return renderMain(); // alias for now
+  if (screen === 'escalations-list') return renderEscalationsList();
   if (screen === 'escalation-detail') return renderEscalationDetail();
   if (screen === 'chats-list') return renderChatsList();
   if (screen === 'contragents-list') return renderContragentsList();
